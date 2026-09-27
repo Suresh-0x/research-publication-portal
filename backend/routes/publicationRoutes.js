@@ -32,17 +32,32 @@ router.post("/", protect, isFaculty, async (req, res) => {
 //          Faculty see their own via /publications?mine=true
 router.get("/", protect, async (req, res) => {
   try {
-    const { search, year, status, mine } = req.query;
+    const { search, year, status, mine, type, journalConference, doi } = req.query;
     const filter = {};
 
     if (mine === "true") {
       filter.facultyId = req.user.id;
     }
+    
+    // Search across Title, Journal/Conference, or DOI
     if (search) {
-      filter.paperTitle = { $regex: search, $options: "i" };
+      filter.$or = [
+        { paperTitle: { $regex: search, $options: "i" } },
+        { journalConference: { $regex: search, $options: "i" } },
+        { DOI: { $regex: search, $options: "i" } },
+      ];
+    }
+    if (journalConference) {
+      filter.journalConference = { $regex: journalConference, $options: "i" };
+    }
+    if (doi) {
+      filter.DOI = { $regex: doi, $options: "i" };
     }
     if (year) {
       filter.publicationYear = year;
+    }
+    if (type) {
+      filter.publicationType = type;
     }
     if (status) {
       filter.verificationStatus = status;
