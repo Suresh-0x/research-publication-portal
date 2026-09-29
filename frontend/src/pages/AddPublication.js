@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/axios";
 import Navbar from "../components/Navbar";
 
@@ -16,7 +17,9 @@ export default function AddPublication() {
   const [loading, setLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
+  // Navbar includes Dashboard, My Publications, and Search as requested
   const navLinks = [
+    { to: "/faculty-dashboard", label: "Dashboard" },
     { to: "/my-publications", label: "My Publications" },
     { to: "/search-publications", label: "Search" },
   ];
@@ -33,7 +36,7 @@ export default function AddPublication() {
 
     try {
       await api.post("/publications", formData);
-      setSuccess("Publication added. It is now pending admin verification.");
+      setSuccess("Publication submitted successfully! It is now pending admin verification.");
       setFormData({
         paperTitle: "",
         publicationType: "Journal",
@@ -42,148 +45,508 @@ export default function AddPublication() {
         DOI: "",
       });
     } catch (err) {
-      setError(err.response?.data?.message || "Could not add publication. Please try again.");
+      setError(err.response?.data?.message || "Could not add publication. Please verify all fields.");
     } finally {
       setLoading(false);
     }
   };
 
+  const getTypeMeta = (type) => {
+    switch (type) {
+      case "Conference":
+        return {
+          venueLabel: "Conference Name & Proceedings",
+          venuePlaceholder: "e.g. IEEE International Conference on Computer Vision (ICCV 2025)",
+          venueIcon: "🎤",
+          idLabel: "DOI / Proceedings Link",
+          idPlaceholder: "e.g. 10.1109/ICCV.2025.00123",
+          idTip: "Adding a DOI or conference link allows instant verification.",
+        };
+      case "Book Chapter":
+        return {
+          venueLabel: "Book Title & Publisher",
+          venuePlaceholder: "e.g. Advances in Deep Learning, Springer Nature",
+          venueIcon: "📖",
+          idLabel: "ISBN / Chapter DOI",
+          idPlaceholder: "e.g. 978-3-030-98765-4 or 10.1007/978-3-...",
+          idTip: "ISBN or Chapter DOI verifies publication with the publisher.",
+        };
+      case "Patent":
+        return {
+          venueLabel: "Issuing Patent Authority / Office",
+          venuePlaceholder: "e.g. Indian Patent Office (IPO) / USPTO",
+          venueIcon: "💡",
+          idLabel: "Patent / Application Number",
+          idPlaceholder: "e.g. IN 202541098765 A or US 11,234,567 B2",
+          idTip: "Patent or application number verifies the official filing record.",
+        };
+      case "Journal":
+      default:
+        return {
+          venueLabel: "Journal / Publisher Name",
+          venuePlaceholder: "e.g. IEEE Transactions on Pattern Analysis and Machine Intelligence",
+          venueIcon: "🏛️",
+          idLabel: "Digital Object Identifier (DOI)",
+          idPlaceholder: "e.g. 10.1038/nature14539",
+          idTip: "Adding a valid DOI creates an instant publisher verification link (e.g. doi.org).",
+        };
+    }
+  };
+
+  const typeMeta = getTypeMeta(formData.publicationType);
+
   return (
     <div
       style={{
         minHeight: "100vh",
-        /* Beautiful distinct soft-indigo & violet gradient background */
-        background: "linear-gradient(135deg, #e0e7ff 0%, #ede9fe 40%, #fae8ff 100%)",
+        background: "linear-gradient(135deg, #eef2ff 0%, #f5f3ff 45%, #fdf2f8 100%)",
       }}
     >
       <Navbar links={navLinks} />
 
-      <div style={{ maxWidth: "560px", margin: "0 auto", padding: "2.5rem 1.25rem 4rem" }}>
+      <main style={{ maxWidth: "720px", margin: "0 auto", padding: "2.5rem 1.25rem 4.5rem" }}>
         
-        {/* Card with Zoom-in & Zoom-out effect */}
+        {/* Header Badge & Title */}
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+              color: "#ffffff",
+              padding: "0.4rem 1rem",
+              borderRadius: "999px",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.25)",
+              marginBottom: "0.85rem",
+            }}
+          >
+            <span>📝</span>
+            <span>Faculty Research Submission</span>
+          </div>
+
+          <h1
+            style={{
+              fontSize: "2.1rem",
+              fontWeight: 800,
+              color: "#0f172a",
+              margin: "0 0 0.5rem",
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Add New Publication
+          </h1>
+          <p style={{ fontSize: "0.95rem", color: "#64748b", margin: 0, maxWidth: "560px", marginLeft: "auto", marginRight: "auto" }}>
+            Submit your research work for institutional verification. Once reviewed, it will appear in the verified academic directory.
+          </p>
+        </div>
+
+        {/* Main Form Card with soft-blue border and glassmorphic look */}
         <div
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
           style={{
-            background: "#ffffff",
-            border: isHovered ? "1.5px solid #a855f7" : "1.5px solid #cbd5e1",
-            borderRadius: "24px",
-            padding: "2.5rem 2.2rem",
-            /* Zoom In on hover, Zoom Out on leave */
-            transform: isHovered ? "scale(1.02) translateY(-4px)" : "scale(1) translateY(0)",
+            background: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(14px)",
+            border: isHovered ? "2px solid #6366f1" : "2px solid #818cf8",
+            borderRadius: "26px",
+            padding: "2.5rem 2.5rem",
+            transform: isHovered ? "translateY(-3px)" : "translateY(0)",
             boxShadow: isHovered
-              ? "0 20px 40px -10px rgba(99, 102, 241, 0.22), 0 0 0 1px rgba(168, 85, 247, 0.2)"
-              : "0 10px 30px -5px rgba(99, 102, 241, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04)",
-            transition: "all 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
-            animation: "cardZoomIn 0.45s ease-out",
+              ? "0 22px 48px -12px rgba(99, 102, 241, 0.22), 0 0 0 1px rgba(99, 102, 241, 0.15)"
+              : "0 14px 34px -10px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)",
+            transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
           }}
         >
-          {/* Inline keyframes for initial load zoom */}
-          <style>
-            {`
-              @keyframes cardZoomIn {
-                from {
-                  opacity: 0;
-                  transform: scale(0.95) translateY(12px);
-                }
-                to {
-                  opacity: 1;
-                  transform: scale(1) translateY(0);
-                }
-              }
-            `}
-          </style>
-
-          <div className="page-header" style={{ marginBottom: "1.5rem" }}>
-            <h2>Add Publication</h2>
-          </div>
-
-          {error && <p className="alert alert-error">{error}</p>}
-          {success && <p className="alert alert-success">{success}</p>}
-
-          <form onSubmit={handleSubmit}>
-            <label className="field-label">Paper Title</label>
-            <input
-              type="text"
-              name="paperTitle"
-              value={formData.paperTitle}
-              onChange={handleChange}
-              required
-              className="field-input"
-              placeholder="e.g. AI in Education Systems"
-              style={{ width: "100%", boxSizing: "border-box" }}
-            />
-
-            <label className="field-label">Publication Type</label>
-            <select
-              name="publicationType"
-              value={formData.publicationType}
-              onChange={handleChange}
-              className="field-input"
-              style={{ width: "100%", boxSizing: "border-box", cursor: "pointer" }}
-            >
-              <option value="Journal">Journal</option>
-              <option value="Conference">Conference</option>
-              <option value="Book Chapter">Book Chapter</option>
-              <option value="Patent">Patent</option>
-            </select>
-
-            <label className="field-label">Journal / Conference Name</label>
-            <input
-              type="text"
-              name="journalConference"
-              value={formData.journalConference}
-              onChange={handleChange}
-              required
-              className="field-input"
-              placeholder="e.g. International Journal of AI Research"
-              style={{ width: "100%", boxSizing: "border-box" }}
-            />
-
-            <label className="field-label">Publication Year</label>
-            <input
-              type="number"
-              name="publicationYear"
-              value={formData.publicationYear}
-              onChange={handleChange}
-              required
-              min="1990"
-              max="2100"
-              className="field-input"
-              style={{ width: "100%", boxSizing: "border-box" }}
-            />
-
-            <label className="field-label">DOI (optional)</label>
-            <input
-              type="text"
-              name="DOI"
-              value={formData.DOI}
-              onChange={handleChange}
-              className="field-input"
-              placeholder="e.g. 10.1234/ijair.2025.001"
-              style={{ width: "100%", boxSizing: "border-box" }}
-            />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn btn-primary"
+          {/* Notification Messages */}
+          {error && (
+            <div
               style={{
-                width: "100%",
-                height: "46px",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                padding: "0.9rem 1.1rem",
                 borderRadius: "14px",
+                background: "#fef2f2",
+                border: "1.5px solid #fecaca",
+                color: "#991b1b",
+                fontSize: "0.9rem",
                 fontWeight: 600,
-                fontSize: "0.95rem",
-                marginTop: "1.5rem",
-                cursor: loading ? "not-allowed" : "pointer",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
+                marginBottom: "1.5rem",
               }}
             >
-              {loading ? "Submitting..." : "Add Publication"}
-            </button>
+              <span style={{ fontSize: "1.2rem" }}>⚠️</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div
+              style={{
+                padding: "1rem 1.25rem",
+                borderRadius: "16px",
+                background: "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)",
+                border: "1.5px solid #86efac",
+                color: "#166534",
+                fontSize: "0.92rem",
+                marginBottom: "1.75rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.6rem",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontWeight: 700 }}>
+                <span style={{ fontSize: "1.2rem" }}>🎉</span>
+                <span>{success}</span>
+              </div>
+              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
+                <Link
+                  to="/my-publications"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.4rem 0.85rem",
+                    borderRadius: "10px",
+                    background: "#16a34a",
+                    color: "#ffffff",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                    boxShadow: "0 2px 6px rgba(22, 163, 74, 0.3)",
+                  }}
+                >
+                  View My Publications ➔
+                </Link>
+                <Link
+                  to="/faculty-dashboard"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    padding: "0.4rem 0.85rem",
+                    borderRadius: "10px",
+                    background: "#ffffff",
+                    border: "1px solid #bbf7d0",
+                    color: "#15803d",
+                    fontSize: "0.82rem",
+                    fontWeight: 700,
+                    textDecoration: "none",
+                  }}
+                >
+                  Back to Dashboard
+                </Link>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.35rem" }}>
+            
+            {/* Paper Title */}
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontSize: "0.88rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  marginBottom: "0.45rem",
+                }}
+              >
+                <span>📄</span>
+                <span>Paper Title <span style={{ color: "#ef4444" }}>*</span></span>
+              </label>
+              <input
+                type="text"
+                name="paperTitle"
+                value={formData.paperTitle}
+                onChange={handleChange}
+                required
+                placeholder="e.g. Deep Residual Learning for Image Recognition"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.95rem",
+                  color: "#0f172a",
+                  outline: "none",
+                  background: "#f8fafc",
+                  transition: "all 0.2s ease",
+                }}
+                onFocus={(e) => {
+                  e.target.style.background = "#ffffff";
+                  e.target.style.borderColor = "#6366f1";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.15)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.background = "#f8fafc";
+                  e.target.style.borderColor = "#cbd5e1";
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            {/* Publication Type and Year (2 Column Grid) */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              
+              <div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    fontSize: "0.88rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.45rem",
+                  }}
+                >
+                  <span>🏷️</span>
+                  <span>Publication Type <span style={{ color: "#ef4444" }}>*</span></span>
+                </label>
+                <select
+                  name="publicationType"
+                  value={formData.publicationType}
+                  onChange={handleChange}
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.95rem",
+                    color: "#0f172a",
+                    outline: "none",
+                    background: "#f8fafc",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.background = "#ffffff";
+                    e.target.style.borderColor = "#6366f1";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = "#f8fafc";
+                    e.target.style.borderColor = "#cbd5e1";
+                    e.target.style.boxShadow = "none";
+                  }}
+                >
+                  <option value="Journal">Journal</option>
+                  <option value="Conference">Conference</option>
+                  <option value="Book Chapter">Book Chapter</option>
+                  <option value="Patent">Patent</option>
+                </select>
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    fontSize: "0.88rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.45rem",
+                  }}
+                >
+                  <span>📅</span>
+                  <span>Publication Year <span style={{ color: "#ef4444" }}>*</span></span>
+                </label>
+                <input
+                  type="number"
+                  name="publicationYear"
+                  value={formData.publicationYear}
+                  onChange={handleChange}
+                  required
+                  min="1950"
+                  max="2100"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "12px",
+                    border: "1.5px solid #cbd5e1",
+                    fontSize: "0.95rem",
+                    color: "#0f172a",
+                    outline: "none",
+                    background: "#f8fafc",
+                    transition: "all 0.2s ease",
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.background = "#ffffff";
+                    e.target.style.borderColor = "#6366f1";
+                    e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.15)";
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.background = "#f8fafc";
+                    e.target.style.borderColor = "#cbd5e1";
+                    e.target.style.boxShadow = "none";
+                  }}
+                />
+              </div>
+
+            </div>
+
+            {/* Dynamic Venue: Journal / Conference / Book / Patent Office */}
+            <div>
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.4rem",
+                  fontSize: "0.88rem",
+                  fontWeight: 700,
+                  color: "#1e293b",
+                  marginBottom: "0.45rem",
+                }}
+              >
+                <span>{typeMeta.venueIcon}</span>
+                <span>{typeMeta.venueLabel} <span style={{ color: "#ef4444" }}>*</span></span>
+              </label>
+              <input
+                type="text"
+                name="journalConference"
+                value={formData.journalConference}
+                onChange={handleChange}
+                required
+                placeholder={typeMeta.venuePlaceholder}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.95rem",
+                  color: "#0f172a",
+                  outline: "none",
+                  background: "#f8fafc",
+                  transition: "all 0.2s ease",
+                }}
+                onFocus={(e) => {
+                  e.target.style.background = "#ffffff";
+                  e.target.style.borderColor = "#6366f1";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.15)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.background = "#f8fafc";
+                  e.target.style.borderColor = "#cbd5e1";
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+            </div>
+
+            {/* Dynamic Identifier: DOI / ISBN / Patent Number */}
+            <div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.45rem" }}>
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.4rem",
+                    fontSize: "0.88rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    margin: 0,
+                  }}
+                >
+                  <span>🔗</span>
+                  <span>{typeMeta.idLabel}</span>
+                </label>
+                <span style={{ fontSize: "0.75rem", color: "#64748b", fontWeight: 600 }}>Optional</span>
+              </div>
+              <input
+                type="text"
+                name="DOI"
+                value={formData.DOI}
+                onChange={handleChange}
+                placeholder={typeMeta.idPlaceholder}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  padding: "0.75rem 1rem",
+                  borderRadius: "12px",
+                  border: "1.5px solid #cbd5e1",
+                  fontSize: "0.95rem",
+                  color: "#0f172a",
+                  outline: "none",
+                  background: "#f8fafc",
+                  transition: "all 0.2s ease",
+                }}
+                onFocus={(e) => {
+                  e.target.style.background = "#ffffff";
+                  e.target.style.borderColor = "#6366f1";
+                  e.target.style.boxShadow = "0 0 0 3px rgba(99, 102, 241, 0.15)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.background = "#f8fafc";
+                  e.target.style.borderColor = "#cbd5e1";
+                  e.target.style.boxShadow = "none";
+                }}
+              />
+              <p style={{ margin: "0.35rem 0 0", fontSize: "0.78rem", color: "#64748b", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                <span>💡</span>
+                <span>{typeMeta.idTip}</span>
+              </p>
+            </div>
+
+            {/* Submit Button */}
+            <div style={{ marginTop: "1rem" }}>
+              <button
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: "100%",
+                  padding: "0.95rem 1.5rem",
+                  borderRadius: "14px",
+                  border: "none",
+                  background: loading
+                    ? "#94a3b8"
+                    : "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                  color: "#ffffff",
+                  fontSize: "1rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.01em",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  boxShadow: loading
+                    ? "none"
+                    : "0 10px 25px -5px rgba(79, 70, 229, 0.4)",
+                  transition: "all 0.2s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "0.5rem",
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 14px 30px -5px rgba(79, 70, 229, 0.5)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 10px 25px -5px rgba(79, 70, 229, 0.4)";
+                  }
+                }}
+              >
+                <span>{loading ? "⏳ Submitting..." : "🚀 Submit Publication"}</span>
+              </button>
+            </div>
+
           </form>
         </div>
-      </div>
+
+      </main>
     </div>
   );
 }
