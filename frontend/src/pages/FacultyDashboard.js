@@ -18,22 +18,42 @@ export default function FacultyDashboard() {
   ];
 
   useEffect(() => {
+    let isMounted = true;
     const fetchStats = async () => {
       try {
-        const response = await api.get("/publications?mine=true");
-        const pubs = response.data;
-        setStats({
-          total: pubs.length,
-          pending: pubs.filter((p) => p.verificationStatus === "pending").length,
-          verified: pubs.filter((p) => p.verificationStatus === "verified").length,
-        });
+        const response = await api.get("/publications/stats?mine=true");
+        if (isMounted && response.data) {
+          setStats({
+            total: response.data.total ?? 0,
+            pending: response.data.pending ?? 0,
+            verified: response.data.verified ?? 0,
+          });
+        }
       } catch (err) {
-        // Fail silently
+        // Fallback for backward compatibility
+        try {
+          const fallbackRes = await api.get("/publications?mine=true");
+          const pubs = fallbackRes.data || [];
+          if (isMounted) {
+            setStats({
+              total: pubs.length,
+              pending: pubs.filter((p) => p.verificationStatus === "pending").length,
+              verified: pubs.filter((p) => p.verificationStatus === "verified").length,
+            });
+          }
+        } catch (fallbackErr) {
+          // Fail silently
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchStats();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (

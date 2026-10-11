@@ -8,7 +8,7 @@ const router = express.Router();
 // @desc    Get all departments (any logged-in user)
 router.get("/", protect, async (req, res) => {
   try {
-    const departments = await Department.find().sort({ departmentName: 1 });
+    const departments = await Department.find().sort({ departmentName: 1 }).lean();
     res.status(200).json(departments);
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

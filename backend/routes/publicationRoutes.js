@@ -26,13 +26,36 @@ router.post("/", protect, isFaculty, async (req, res) => {
   }
 });
 
+// @route   GET /publications/stats
+// @desc    Fast aggregated publication counters (Total, Pending, Verified, Rejected)
+//          Supports ?mine=true for faculty dashboard
+router.get("/stats", protect, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.mine === "true") {
+      filter.facultyId = req.user.id;
+    }
+
+    const [total, pending, verified, rejected] = await Promise.all([
+      Publication.countDocuments(filter),
+      Publication.countDocuments({ ...filter, verificationStatus: "pending" }),
+      Publication.countDocuments({ ...filter, verificationStatus: "verified" }),
+      Publication.countDocuments({ ...filter, verificationStatus: "rejected" }),
+    ]);
+
+    res.status(200).json({ total, pending, verified, rejected });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 // @route   GET /publications
 // @desc    Get all publications (supports search/filter via query params)
 //          e.g. /publications?search=machine+learning&year=2024&status=verified
 //          Faculty see their own via /publications?mine=true
 router.get("/", protect, async (req, res) => {
   try {
-    const { search, year, status, mine, type, journalConference, doi } = req.query;
+    const { search, year, status, mine, type, journalConference, doi, limit, page } = req.query;
     const filter = {};
 
     if (mine === "true") {
@@ -63,9 +86,18 @@ router.get("/", protect, async (req, res) => {
       filter.verificationStatus = status;
     }
 
-    const publications = await Publication.find(filter)
+    let query = Publication.find(filter)
       .populate("facultyId", "name email")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (limit) {
+      const pageNum = Math.max(1, parseInt(page, 10) || 1);
+      const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+      query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
+    }
+
+    const publications = await query;
 
     res.status(200).json(publications);
   } catch (error) {

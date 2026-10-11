@@ -1,27 +1,59 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// Eagerly loaded critical landing / auth pages for instant first paint
 import Home from "./pages/Home";
-import Register from "./pages/Register";
 import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import FacultyDashboard from "./pages/FacultyDashboard";
-import AddPublication from "./pages/AddPublication";
-import MyPublications from "./pages/MyPublications";
-import SearchPublications from "./pages/SearchPublications";
-import AdminDashboard from "./pages/AdminDashboard";
-import ManagePublications from "./pages/ManagePublications";
-import ManageDepartments from "./pages/ManageDepartments";
-import ResetPassword from "./pages/ResetPassword";
+
+// Code-split secondary pages
+const Register = lazy(() => import("./pages/Register"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const FacultyDashboard = lazy(() => import("./pages/FacultyDashboard"));
+const AddPublication = lazy(() => import("./pages/AddPublication"));
+const MyPublications = lazy(() => import("./pages/MyPublications"));
+const SearchPublications = lazy(() => import("./pages/SearchPublications"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const ManagePublications = lazy(() => import("./pages/ManagePublications"));
+const ManageDepartments = lazy(() => import("./pages/ManageDepartments"));
+
+// Minimal lightweight loader for suspense fallback
+function PageLoader() {
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)",
+      }}
+    >
+      <div
+        style={{
+          width: "42px",
+          height: "42px",
+          border: "3.5px solid #e0e7ff",
+          borderTop: "3.5px solid #6366f1",
+          borderRadius: "50%",
+          animation: "appSpin 0.75s linear infinite",
+        }}
+      />
+      <style>{`@keyframes appSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Routes>
-          {/* Public pages */}
-          <Route path="/" element={<Home />} />
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Public pages */}
+            <Route path="/" element={<Home />} />
           <Route path="/register" element={<Register />} />
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -90,6 +122,7 @@ function App() {
           <Route path="/reset-password" element={<ResetPassword />} />
 
         </Routes>
+        </Suspense>
       </BrowserRouter>
     </AuthProvider>
   );

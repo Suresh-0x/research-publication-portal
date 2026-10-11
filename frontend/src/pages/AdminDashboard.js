@@ -17,22 +17,42 @@ export default function AdminDashboard() {
   ];
 
   useEffect(() => {
+    let isMounted = true;
     const fetchStats = async () => {
-      try {
-        const pubsRes = await api.get("/publications");
-        const pubs = pubsRes.data;
-        setStats({
-          total: pubs.length,
-          pending: pubs.filter((p) => p.verificationStatus === "pending").length,
-          verified: pubs.filter((p) => p.verificationStatus === "verified").length,
-        });
+       try {
+        const statsRes = await api.get("/publications/stats");
+        if (isMounted && statsRes.data) {
+          setStats({
+            total: statsRes.data.total ?? 0,
+            pending: statsRes.data.pending ?? 0,
+            verified: statsRes.data.verified ?? 0,
+          });
+        }
       } catch (err) {
-        // Fallback silently
+        // Fallback for backward compatibility
+        try {
+          const pubsRes = await api.get("/publications");
+          const pubs = pubsRes.data || [];
+          if (isMounted) {
+            setStats({
+              total: pubs.length,
+              pending: pubs.filter((p) => p.verificationStatus === "pending").length,
+              verified: pubs.filter((p) => p.verificationStatus === "verified").length,
+            });
+          }
+        } catch (fallbackErr) {
+          // Fallback silently
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     fetchStats();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 📊 Generate CSV Report

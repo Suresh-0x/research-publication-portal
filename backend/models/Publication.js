@@ -38,4 +38,11 @@ const publicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Performance indexes for fast querying, filtering, and tab sorting
+publicationSchema.index({ facultyId: 1 });
+publicationSchema.index({ verificationStatus: 1 });
+publicationSchema.index({ createdAt: -1 });
+publicationSchema.index({ facultyId: 1, verificationStatus: 1 });
+publicationSchema.index({ publicationYear: -1 });
+
 module.exports = mongoose.model("Publication", publicationSchema);

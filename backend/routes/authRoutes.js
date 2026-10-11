@@ -45,7 +45,7 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).select("_id").lean();
 
     if (existingUser) {
       return res.status(400).json({
@@ -63,9 +63,9 @@ router.post("/register", async (req, res) => {
       role: role === "admin" ? "admin" : "faculty",
     });
 
-    // Send welcome email
-    try {
-      await transporter.sendMail({
+    // Send welcome email asynchronously in background (does not block registration response)
+    transporter
+      .sendMail({
         from: `"Research Portal" <${process.env.EMAIL_USER}>`,
         to: newUser.email,
         subject: "Account Created Successfully - Research Portal",
@@ -114,12 +114,13 @@ router.post("/register", async (req, res) => {
 
           </div>
         `,
+      })
+      .then(() => {
+        console.log("Account creation email sent to:", newUser.email);
+      })
+      .catch((mailErr) => {
+        console.error("Account creation email failed:", mailErr);
       });
-
-      console.log("Account creation email sent to:", newUser.email);
-    } catch (mailErr) {
-      console.error("Account creation email failed:", mailErr);
-    }
 
     res.status(201).json({
       message: "Registration successful",
@@ -340,9 +341,9 @@ router.post("/reset-password", async (req, res) => {
 
     await user.save();
 
-    // Send password update confirmation
-    try {
-      await transporter.sendMail({
+    // Send password update confirmation asynchronously in background
+    transporter
+      .sendMail({
         from: `"Portal Security" <${process.env.EMAIL_USER}>`,
         to: user.email,
         subject: "Security Alert: Your password has been updated",
@@ -388,12 +389,13 @@ router.post("/reset-password", async (req, res) => {
 
           </div>
         `,
+      })
+      .then(() => {
+        console.log("Password update confirmation sent to:", user.email);
+      })
+      .catch((mailError) => {
+        console.error("Confirmation mail error:", mailError);
       });
-
-      console.log("Password update confirmation sent to:", user.email);
-    } catch (mailError) {
-      console.error("Confirmation mail error:", mailError);
-    }
 
     res.status(200).json({
       message: "Your password has been updated successfully!",
@@ -448,9 +450,9 @@ router.post("/google-login", async (req, res) => {
       }
     );
 
-    // Send Google login welcome email
-    try {
-      await transporter.sendMail({
+    // Send Google login welcome email in background (non-blocking)
+    transporter
+      .sendMail({
         from: `"Research Portal" <${process.env.EMAIL_USER}>`,
         to: user.email,
         subject: "Successfully Signed In via Google - Research Portal",
@@ -498,12 +500,13 @@ router.post("/google-login", async (req, res) => {
 
           </div>
         `,
+      })
+      .then(() => {
+        console.log("Google welcome email sent to:", user.email);
+      })
+      .catch((mailErr) => {
+        console.error("Google welcome mail error:", mailErr);
       });
-
-      console.log("Google welcome email sent to:", user.email);
-    } catch (mailErr) {
-      console.error("Google welcome mail error:", mailErr);
-    }
 
     res.status(200).json({
       message: "Google login successful",
@@ -541,7 +544,7 @@ router.post("/send-otp", async (req, res) => {
       });
     }
 
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).select("_id").lean();
 
     if (existingUser) {
       return res.status(400).json({
