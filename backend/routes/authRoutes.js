@@ -21,6 +21,7 @@ const FRONTEND_URL =
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
+  family: 4,
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
@@ -206,6 +207,7 @@ router.post("/login", async (req, res) => {
 // =========================================================================
 
 router.post("/forgot-password", async (req, res) => {
+  let resetLink = "";
   try {
     const { email } = req.body;
 
@@ -235,7 +237,7 @@ router.post("/forgot-password", async (req, res) => {
     );
 
     // Production Vercel reset URL
-    const resetLink =
+    resetLink =
       `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
     await transporter.sendMail({
@@ -542,6 +544,7 @@ router.post("/google-login", async (req, res) => {
 const otpStore = {};
 
 router.post("/send-otp", async (req, res) => {
+  let otp = "";
   try {
     const { email } = req.body;
 
@@ -559,7 +562,7 @@ router.post("/send-otp", async (req, res) => {
       });
     }
 
-    const otp = Math.floor(
+    otp = Math.floor(
       100000 + Math.random() * 900000
     ).toString();
 
