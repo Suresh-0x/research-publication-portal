@@ -145,8 +145,7 @@ router.post("/forgot-password", async (req, res) => {
       { expiresIn: "15m" }
     );
 
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
-
+    const resetLink = `https://research-publication-portal.vercel.app/reset-password?token=${resetToken}`;
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
