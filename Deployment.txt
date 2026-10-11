@@ -1,0 +1,29 @@
+mongodb+srv://sureshjaggampudi520_db_user:<db_password>@scholarshipmanagementsy.xxehv0g.mongodb.net/?appName=ScholarshipManagementSystemProject
+
+
+
+MONGO_URI(key)
+value: Mongodburl
+
+click on addmore 
+ 
+Key:port
+value:5000
+  
+
+and click on deploy....
+
+
+output: Library Management API Running........
+
+
+link that url and paste on notepad 
+
+go to vercel 
+
+choose root directory Frontend
+ 
+key:REACT_APP_API_URL
+value: backend url
+
+click on deploy

@@ -13,10 +13,21 @@ const app = express();
 // Connect to MongoDB Atlas
 connectDB();
 
+// Allowed origins for CORS (Vercel Production + Localhost Development)
+const allowedOrigins = [
+  "https://research-publication-portal.vercel.app",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+if (process.env.FRONTEND_URL && !allowedOrigins.includes(process.env.FRONTEND_URL)) {
+  allowedOrigins.push(process.env.FRONTEND_URL);
+}
+
 // Middleware
 app.use(
   cors({
-    origin: "https://research-publication-portal.vercel.app",
+    origin: allowedOrigins,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   })
