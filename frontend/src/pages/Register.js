@@ -17,7 +17,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false); // 👈 Added password show/hide state
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [otpVerified, setOtpVerified] = useState(false);
+  const [, setOtpVerified] = useState(false);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
