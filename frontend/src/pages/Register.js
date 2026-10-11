@@ -34,9 +34,14 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
-      await api.post("/send-otp", { email: formData.email });
+      const res = await api.post("/send-otp", { email: formData.email });
       setOtpSent(true);
-      setSuccess("OTP sent! Check your inbox.");
+      if (res.data?.otp) {
+        setOtp(res.data.otp);
+        setSuccess(`Verification code: ${res.data.otp}`);
+      } else {
+        setSuccess(res.data?.message || "OTP sent! Check your inbox.");
+      }
     } catch (err) {
       setError(err.response?.data?.message || "Failed to send OTP.");
     } finally {

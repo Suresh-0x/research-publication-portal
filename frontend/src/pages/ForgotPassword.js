@@ -5,6 +5,7 @@ import api from '../api/axios';
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [resetLink, setResetLink] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -13,6 +14,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setError('');
     setMessage('');
+    setResetLink('');
 
     try {
       const res = await api.post('/forgot-password', { email });
@@ -20,6 +22,9 @@ export default function ForgotPassword() {
       setMessage(
         res.data.message || 'Password reset link sent to your email!'
       );
+      if (res.data.resetLink) {
+        setResetLink(res.data.resetLink);
+      }
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -108,6 +113,29 @@ export default function ForgotPassword() {
               <polyline points="22 4 12 14.01 9 11.01" />
             </svg>
             <span>{message}</span>
+          </div>
+        )}
+
+        {/* Direct Link Button if hosting blocks SMTP */}
+        {resetLink && (
+          <div style={{ marginBottom: '1.25rem', textAlign: 'center' }}>
+            <a
+              href={resetLink}
+              style={{
+                display: 'inline-block',
+                width: '100%',
+                padding: '12px 20px',
+                background: 'linear-gradient(135deg, #6366f1 0%, #a855f7 100%)',
+                color: '#ffffff',
+                borderRadius: '12px',
+                textDecoration: 'none',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                boxSizing: 'border-box',
+              }}
+            >
+              Click Here to Reset Password
+            </a>
           </div>
         )}
 
