@@ -4,10 +4,20 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Home() {
   const { user } = useAuth();
-  const dashboardPath = user?.role === "admin" ? "/admin-dashboard" : "/faculty-dashboard";
+
+  const dashboardPath =
+    user?.role === "admin"
+      ? "/admin-dashboard"
+      : "/faculty-dashboard";
 
   return (
-    <div className="auth-shell" style={{ padding: "2rem 1.5rem" }}>
+    <div
+      className="auth-shell"
+      style={{
+        padding: "2rem 1.5rem",
+        background: "#f8fafc",
+      }}
+    >
       <div
         className="home-card-enter"
         style={{
@@ -17,7 +27,8 @@ export default function Home() {
           backdropFilter: "blur(20px)",
           borderRadius: "28px",
           border: "1px solid rgba(226, 232, 240, 0.9)",
-          boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 1px 1px rgba(255, 255, 255, 0.8) inset",
+          boxShadow:
+            "0 25px 50px -12px rgba(99, 102, 241, 0.25), 0 0 1px 1px rgba(255, 255, 255, 0.8) inset",
           overflow: "hidden",
           display: "flex",
           flexDirection: "row",
@@ -25,7 +36,7 @@ export default function Home() {
           minHeight: "480px",
         }}
       >
-        {/* Left Side: Research Graphic */}
+        {/* LEFT SIDE: RESEARCH IMAGE */}
         <div
           style={{
             flex: "1 1 45%",
@@ -51,7 +62,8 @@ export default function Home() {
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.12)",
             }}
           />
-          {/* Subtle Tag Overlay */}
+
+          {/* IMAGE TAG */}
           <div
             style={{
               position: "absolute",
@@ -71,12 +83,20 @@ export default function Home() {
               boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
             }}
           >
-            <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#10b981" }}></span>
+            <span
+              style={{
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                background: "#10b981",
+              }}
+            ></span>
+
             <span>Faculty Research & Publications</span>
           </div>
         </div>
 
-        {/* Right Side: Content & Actions */}
+        {/* RIGHT SIDE: CONTENT */}
         <div
           style={{
             flex: "1 1 55%",
@@ -86,8 +106,15 @@ export default function Home() {
             justifyContent: "center",
           }}
         >
-          {/* Institution Header Tag */}
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.85rem" }}>
+          {/* ACADEMIC PORTAL LABEL */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.85rem",
+            }}
+          >
             <span
               style={{
                 fontSize: "0.75rem",
@@ -104,7 +131,7 @@ export default function Home() {
             </span>
           </div>
 
-          {/* Single-Line Title */}
+          {/* TITLE */}
           <h1
             style={{
               fontSize: "1.85rem",
@@ -119,7 +146,7 @@ export default function Home() {
             Welcome to the Research Portal
           </h1>
 
-          {/* Description */}
+          {/* DESCRIPTION */}
           <p
             style={{
               fontSize: "0.93rem",
@@ -128,27 +155,102 @@ export default function Home() {
               margin: "0 0 1.6rem",
             }}
           >
-            A centralized platform to record, verify, and showcase faculty research — covering journals, conferences, book chapters, and patents organized by department.
+            A centralized platform to record, verify, and showcase faculty
+            research — covering journals, conferences, book chapters, and
+            patents organized by department.
           </p>
 
-          {/* Highlights */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginBottom: "2rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.86rem", color: "#334155", fontWeight: 500 }}>
-              <div style={{ width: "20px", height: "20px", borderRadius: "6px", background: "#ecfdf5", color: "#059669", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>✓</div>
-              <span>Peer-reviewed journals & conference papers tracking</span>
+          {/* HIGHLIGHTS */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.6rem",
+              marginBottom: "2rem",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.6rem",
+                fontSize: "0.86rem",
+                color: "#334155",
+                fontWeight: 500,
+              }}
+            >
+              <div
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "6px",
+                  background: "#ecfdf5",
+                  color: "#059669",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                }}
+              >
+                ✓
+              </div>
+
+              <span>
+                Peer-reviewed journals & conference papers tracking
+              </span>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", fontSize: "0.86rem", color: "#334155", fontWeight: 500 }}>
-              <div style={{ width: "20px", height: "20px", borderRadius: "6px", background: "#eff6ff", color: "#2563eb", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700 }}>✓</div>
-              <span>Department-wise verified research analytics</span>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.6rem",
+                fontSize: "0.86rem",
+                color: "#334155",
+                fontWeight: 500,
+              }}
+            >
+              <div
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "6px",
+                  background: "#eff6ff",
+                  color: "#2563eb",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                }}
+              >
+                ✓
+              </div>
+
+              <span>
+                Department-wise verified research analytics
+              </span>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* ACTIONS */}
           {user ? (
             <div>
-              <p style={{ fontSize: "0.85rem", color: "#64748b", marginBottom: "0.75rem" }}>
-                Signed in as <strong style={{ color: "#0f172a" }}>{user.name}</strong> ({user.role})
+              <p
+                style={{
+                  fontSize: "0.85rem",
+                  color: "#64748b",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                Signed in as{" "}
+                <strong style={{ color: "#0f172a" }}>
+                  {user.name}
+                </strong>{" "}
+                ({user.role})
               </p>
+
               <Link
                 to={dashboardPath}
                 className="btn btn-primary"
@@ -163,15 +265,37 @@ export default function Home() {
                 }}
               >
                 <span>Go to Dashboard</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="12" x2="19" y2="12"></line>
+
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line
+                    x1="5"
+                    y1="12"
+                    x2="19"
+                    y2="12"
+                  ></line>
+
                   <polyline points="12 5 19 12 12 19"></polyline>
                 </svg>
               </Link>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-              {/* Primary Login Button */}
+            <div
+              style={{
+                display: "flex",
+                gap: "1rem",
+                flexWrap: "wrap",
+              }}
+            >
+              {/* SIGN IN BUTTON */}
               <Link
                 to="/login"
                 className="btn btn-primary"
@@ -185,18 +309,36 @@ export default function Home() {
                   width: "auto",
                   margin: 0,
                   borderRadius: "14px",
-                  boxShadow: "0 8px 20px -4px rgba(99, 102, 241, 0.45)",
+                  boxShadow:
+                    "0 8px 20px -4px rgba(99, 102, 241, 0.45)",
                 }}
               >
                 <span>Sign In</span>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+
                   <polyline points="10 17 15 12 10 7"></polyline>
-                  <line x1="15" y1="12" x2="3" y2="12"></line>
+
+                  <line
+                    x1="15"
+                    y1="12"
+                    x2="3"
+                    y2="12"
+                  ></line>
                 </svg>
               </Link>
 
-              {/* Secondary Register Button */}
+              {/* CREATE ACCOUNT BUTTON */}
               <Link
                 to="/register"
                 style={{
@@ -213,25 +355,55 @@ export default function Home() {
                   borderRadius: "14px",
                   textDecoration: "none",
                   transition: "all 0.15s ease",
-                  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
+                  boxShadow:
+                    "0 1px 3px rgba(0, 0, 0, 0.04)",
                 }}
                 onMouseOver={(e) => {
                   e.currentTarget.style.borderColor = "#6366f1";
                   e.currentTarget.style.color = "#6366f1";
-                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.transform =
+                    "translateY(-1px)";
                 }}
                 onMouseOut={(e) => {
                   e.currentTarget.style.borderColor = "#cbd5e1";
                   e.currentTarget.style.color = "#334155";
-                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.transform =
+                    "translateY(0)";
                 }}
               >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="9" cy="7" r="4"></circle>
-                  <line x1="19" y1="8" x2="19" y2="14"></line>
-                  <line x1="22" y1="11" x2="16" y2="11"></line>
+
+                  <circle
+                    cx="9"
+                    cy="7"
+                    r="4"
+                  ></circle>
+
+                  <line
+                    x1="19"
+                    y1="8"
+                    x2="19"
+                    y2="14"
+                  ></line>
+
+                  <line
+                    x1="22"
+                    y1="11"
+                    x2="16"
+                    y2="11"
+                  ></line>
                 </svg>
+
                 <span>Create Account</span>
               </Link>
             </div>

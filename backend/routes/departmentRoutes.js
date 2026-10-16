@@ -1,65 +1,59 @@
 const express = require("express");
-const Department = require("../models/Department");
-const { protect, isAdmin } = require("../middleware/authMiddleware");
+
+const {
+  getDepartments,
+  getDepartmentById,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+} = require("../controllers/departmentController");
+
+const {
+  protect,
+  isAdmin,
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// @route   GET /departments
-// @desc    Get all departments (any logged-in user)
-router.get("/", protect, async (req, res) => {
-  try {
-    const departments = await Department.find().sort({ departmentName: 1 }).lean();
-    res.status(200).json(departments);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+/*
+=========================================================
+DEPARTMENT ROUTES
+=========================================================
+*/
 
-// @route   POST /departments
-// @desc    Admin only - create a department
-router.post("/", protect, isAdmin, async (req, res) => {
-  try {
-    const { departmentName, HODName, totalFaculty } = req.body;
-    const department = await Department.create({ departmentName, HODName, totalFaculty });
-    res.status(201).json({ message: "Department created", department });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+// Get all departments
+// Faculty + Admin
+router.get("/", protect, getDepartments);
 
-// @route   PUT /departments/:id
-// @desc    Admin only - update a department
-router.put("/:id", protect, isAdmin, async (req, res) => {
-  try {
-    const department = await Department.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+// Get single department
+// Faculty + Admin
+router.get("/:id", protect, getDepartmentById);
 
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
+// Create department
+// Admin only
+router.post(
+  "/",
+  protect,
+  isAdmin,
+  createDepartment
+);
 
-    res.status(200).json({ message: "Department updated", department });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+// Update department
+// Admin only
+router.put(
+  "/:id",
+  protect,
+  isAdmin,
+  updateDepartment
+);
 
-// @route   DELETE /departments/:id
-// @desc    Admin only - delete a department
-router.delete("/:id", protect, isAdmin, async (req, res) => {
-  try {
-    const department = await Department.findByIdAndDelete(req.params.id);
-
-    if (!department) {
-      return res.status(404).json({ message: "Department not found" });
-    }
-
-    res.status(200).json({ message: "Department deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+// Delete department
+// Admin only
+router.delete(
+  "/:id",
+  protect,
+  isAdmin,
+  deleteDepartment
+);
 
 module.exports = router;

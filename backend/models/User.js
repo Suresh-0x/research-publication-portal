@@ -7,6 +7,21 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+
+    facultyId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+
+    adminId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+
     email: {
       type: String,
       required: true,
@@ -14,21 +29,26 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+
     password: {
       type: String,
       required: true,
     },
+
     role: {
       type: String,
       enum: ["faculty", "admin"],
       default: "faculty",
     },
+
     department: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Department",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 module.exports = mongoose.model("User", userSchema);

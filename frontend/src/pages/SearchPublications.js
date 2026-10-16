@@ -25,7 +25,7 @@ export default function SearchPublications() {
       ? [
           { to: "/admin-dashboard", label: "Dashboard" },
           { to: "/manage-publications", label: "Publications" },
-          { to: "/search-publications", label: "Search" },
+           { to: "/manage-departments", label: "Departments" },
         ]
       : [
           { to: "/faculty-dashboard", label: "Dashboard" },

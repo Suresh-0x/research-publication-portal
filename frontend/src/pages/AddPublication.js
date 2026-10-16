@@ -83,7 +83,7 @@ export default function AddPublication() {
       case "Journal":
       default:
         return {
-          venueLabel: "Journal / Publisher Name",
+          venueLabel: "Journal / Conference / Publisher Name",
           venuePlaceholder: "e.g. IEEE Transactions on Pattern Analysis and Machine Intelligence",
           venueIcon: "🏛️",
           idLabel: "Digital Object Identifier (DOI)",

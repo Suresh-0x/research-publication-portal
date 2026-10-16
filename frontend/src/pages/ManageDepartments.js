@@ -17,10 +17,11 @@ export default function ManageDepartments() {
   const [busyId, setBusyId] = useState(null);
 
   const navLinks = [
-    { to: "/manage-publications", label: "Publications" },
-    { to: "/search-publications", label: "Search" },
-  ];
-
+  { to: "/admin-dashboard", label: "Dashboard" },
+  { to: "/manage-publications", label: "Publications" },
+  { to: "/search-publications", label: "Search" },
+  
+];
   const fetchDepartments = async () => {
     setLoading(true);
     setError("");

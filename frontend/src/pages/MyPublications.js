@@ -18,6 +18,7 @@ export default function MyPublications() {
     publicationYear: "",
     DOI: "",
   });
+
   const [savingEdit, setSavingEdit] = useState(false);
   const [modalError, setModalError] = useState("");
   const [actionSuccess, setActionSuccess] = useState("");
@@ -28,14 +29,40 @@ export default function MyPublications() {
     { to: "/search-publications", label: "Search" },
   ];
 
+  // =========================================================
+  // FETCH MY PUBLICATIONS
+  // =========================================================
   const fetchMyPublications = async () => {
     setLoading(true);
     setError("");
+
     try {
       const response = await api.get("/publications?mine=true");
-      setPublications(response.data);
+
+      // Backend returns:
+      // {
+      //   publications: [],
+      //   pagination: {...}
+      // }
+      const data = response.data;
+
+      if (Array.isArray(data)) {
+        // Safety fallback if backend ever returns an array directly
+        setPublications(data);
+      } else {
+        setPublications(
+          Array.isArray(data?.publications) ? data.publications : []
+        );
+      }
     } catch (err) {
-      setError(err.response?.data?.message || "Could not load your publications.");
+      console.error("Fetch publications error:", err);
+
+      setPublications([]);
+
+      setError(
+        err.response?.data?.message ||
+          "Could not load your publications."
+      );
     } finally {
       setLoading(false);
     }
@@ -45,9 +72,13 @@ export default function MyPublications() {
     fetchMyPublications();
   }, []);
 
+  // =========================================================
+  // OPEN EDIT MODAL
+  // =========================================================
   const openEditModal = (pub) => {
     setEditingPub(pub);
     setModalError("");
+
     setEditFormData({
       paperTitle: pub.paperTitle || "",
       publicationType: pub.publicationType || "Journal",
@@ -57,58 +88,139 @@ export default function MyPublications() {
     });
   };
 
+  // =========================================================
+  // CLOSE EDIT MODAL
+  // =========================================================
   const closeEditModal = () => {
     setEditingPub(null);
     setModalError("");
   };
 
+  // =========================================================
+  // EDIT FORM CHANGE
+  // =========================================================
   const handleEditChange = (e) => {
-    setEditFormData({ ...editFormData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
+  // =========================================================
+  // SAVE EDIT
+  // =========================================================
   const handleSaveEdit = async (e) => {
     e.preventDefault();
+
     if (!editingPub) return;
+
     setSavingEdit(true);
     setModalError("");
+    setActionSuccess("");
 
     try {
-      const response = await api.put(`/publications/${editingPub._id}`, editFormData);
-      setPublications((prev) =>
-        prev.map((pub) => (pub._id === editingPub._id ? response.data.publication : pub))
+      const response = await api.put(
+        `/publications/${editingPub._id}`,
+        {
+          paperTitle: editFormData.paperTitle.trim(),
+          publicationType: editFormData.publicationType,
+          journalConference: editFormData.journalConference.trim(),
+          publicationYear: Number(editFormData.publicationYear),
+          DOI: editFormData.DOI.trim(),
+        }
       );
+
+      const updatedPublication = response.data?.publication;
+
+      if (updatedPublication) {
+        setPublications((prev) =>
+          prev.map((pub) =>
+            pub._id === editingPub._id
+              ? updatedPublication
+              : pub
+          )
+        );
+      } else {
+        // Safest option if backend response format changes
+        await fetchMyPublications();
+      }
+
       setEditingPub(null);
-      setActionSuccess("Publication updated successfully!");
-      setTimeout(() => setActionSuccess(""), 4000);
+
+      setActionSuccess(
+        "Publication updated successfully!"
+      );
+
+      setTimeout(() => {
+        setActionSuccess("");
+      }, 4000);
     } catch (err) {
-      setModalError(err.response?.data?.message || "Failed to update publication.");
+      console.error("Update publication error:", err);
+
+      setModalError(
+        err.response?.data?.message ||
+          "Failed to update publication."
+      );
     } finally {
       setSavingEdit(false);
     }
   };
 
-  // Filter computations
-  const pendingCount = publications.filter((p) => p.verificationStatus === "pending").length;
-  const verifiedCount = publications.filter((p) => p.verificationStatus === "verified").length;
-  const rejectedCount = publications.filter((p) => p.verificationStatus === "rejected").length;
+  // =========================================================
+  // NORMALIZE STATUS
+  // =========================================================
+  const getStatus = (publication) => {
+    return String(
+      publication?.verificationStatus || "PENDING"
+    ).toUpperCase();
+  };
 
+  // =========================================================
+  // FILTER COUNTS
+  // =========================================================
+  const pendingCount = publications.filter(
+    (p) => getStatus(p) === "PENDING"
+  ).length;
+
+  const verifiedCount = publications.filter(
+    (p) => getStatus(p) === "VERIFIED"
+  ).length;
+
+  const rejectedCount = publications.filter(
+    (p) => getStatus(p) === "REJECTED"
+  ).length;
+
+  // =========================================================
+  // FILTERED PUBLICATIONS
+  // =========================================================
   const filteredPublications = publications.filter((p) => {
     if (filterTab === "all") return true;
-    return p.verificationStatus === filterTab;
+
+    return getStatus(p) === filterTab.toUpperCase();
   });
 
   return (
     <div
       style={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #eef2ff 0%, #f5f3ff 45%, #fdf2f8 100%)",
+        background:
+          "linear-gradient(135deg, #eef2ff 0%, #f5f3ff 45%, #fdf2f8 100%)",
       }}
     >
       <Navbar links={navLinks} />
 
-      <main style={{ maxWidth: "1080px", margin: "0 auto", padding: "2.5rem 1.25rem 5rem" }}>
-        
-        {/* Top Header Card */}
+      <main
+        style={{
+          maxWidth: "1080px",
+          margin: "0 auto",
+          padding: "2.5rem 1.25rem 5rem",
+        }}
+      >
+        {/* =====================================================
+            TOP HEADER CARD
+        ===================================================== */}
         <div
           style={{
             background: "rgba(255, 255, 255, 0.94)",
@@ -116,7 +228,8 @@ export default function MyPublications() {
             borderRadius: "26px",
             border: "2px solid #818cf8",
             padding: "2rem 2.2rem",
-            boxShadow: "0 15px 35px -5px rgba(99, 102, 241, 0.12)",
+            boxShadow:
+              "0 15px 35px -5px rgba(99, 102, 241, 0.12)",
             marginBottom: "2rem",
             display: "flex",
             flexWrap: "wrap",
@@ -131,7 +244,8 @@ export default function MyPublications() {
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+                background:
+                  "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
                 color: "#ffffff",
                 padding: "0.35rem 0.9rem",
                 borderRadius: "999px",
@@ -145,6 +259,7 @@ export default function MyPublications() {
               <span>🎓</span>
               <span>Faculty Research Portfolio</span>
             </div>
+
             <h1
               style={{
                 fontSize: "2rem",
@@ -156,8 +271,17 @@ export default function MyPublications() {
             >
               My Publications
             </h1>
-            <p style={{ fontSize: "0.92rem", color: "#64748b", margin: 0 }}>
-              Track your publication statuses, review administrative verification feedback, or update DOI information.
+
+            <p
+              style={{
+                fontSize: "0.92rem",
+                color: "#64748b",
+                margin: 0,
+              }}
+            >
+              Track your publication statuses, review
+              administrative verification feedback, or update DOI
+              information.
             </p>
           </div>
 
@@ -169,12 +293,14 @@ export default function MyPublications() {
               gap: "0.5rem",
               padding: "0.8rem 1.4rem",
               borderRadius: "14px",
-              background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+              background:
+                "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
               color: "#ffffff",
               fontWeight: 700,
               fontSize: "0.92rem",
               textDecoration: "none",
-              boxShadow: "0 8px 20px -3px rgba(79, 70, 229, 0.4)",
+              boxShadow:
+                "0 8px 20px -3px rgba(79, 70, 229, 0.4)",
               transition: "all 0.2s ease",
             }}
           >
@@ -183,7 +309,9 @@ export default function MyPublications() {
           </Link>
         </div>
 
-        {/* Success Alert Banner */}
+        {/* =====================================================
+            SUCCESS ALERT
+        ===================================================== */}
         {actionSuccess && (
           <div
             style={{
@@ -198,7 +326,8 @@ export default function MyPublications() {
               fontSize: "0.92rem",
               fontWeight: 600,
               marginBottom: "1.75rem",
-              boxShadow: "0 4px 12px rgba(22, 163, 74, 0.1)",
+              boxShadow:
+                "0 4px 12px rgba(22, 163, 74, 0.1)",
             }}
           >
             <span style={{ fontSize: "1.2rem" }}>🎉</span>
@@ -206,7 +335,9 @@ export default function MyPublications() {
           </div>
         )}
 
-        {/* Global Error Alert */}
+        {/* =====================================================
+            ERROR ALERT
+        ===================================================== */}
         {error && (
           <div
             style={{
@@ -228,7 +359,9 @@ export default function MyPublications() {
           </div>
         )}
 
-        {/* Metric Summary & Filter Tabs Bar */}
+        {/* =====================================================
+            FILTER TABS
+        ===================================================== */}
         <div
           style={{
             display: "flex",
@@ -239,7 +372,6 @@ export default function MyPublications() {
             marginBottom: "1.75rem",
           }}
         >
-          {/* Tab Buttons */}
           <div
             style={{
               display: "inline-flex",
@@ -248,16 +380,34 @@ export default function MyPublications() {
               padding: "0.4rem",
               borderRadius: "16px",
               border: "1.5px solid #cbd5e1",
-              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+              boxShadow:
+                "0 4px 12px rgba(0, 0, 0, 0.04)",
             }}
           >
             {[
-              { id: "all", label: "All Papers", count: publications.length },
-              { id: "pending", label: "Pending", count: pendingCount },
-              { id: "verified", label: "Verified", count: verifiedCount },
-              { id: "rejected", label: "Rejected", count: rejectedCount },
+              {
+                id: "all",
+                label: "All Papers",
+                count: publications.length,
+              },
+              {
+                id: "pending",
+                label: "Pending",
+                count: pendingCount,
+              },
+              {
+                id: "verified",
+                label: "Verified",
+                count: verifiedCount,
+              },
+              {
+                id: "rejected",
+                label: "Rejected",
+                count: rejectedCount,
+              },
             ].map((tab) => {
               const active = filterTab === tab.id;
+
               return (
                 <button
                   key={tab.id}
@@ -273,7 +423,9 @@ export default function MyPublications() {
                       ? "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)"
                       : "transparent",
                     color: active ? "#ffffff" : "#64748b",
-                    boxShadow: active ? "0 6px 16px -2px rgba(79, 70, 229, 0.4)" : "none",
+                    boxShadow: active
+                      ? "0 6px 16px -2px rgba(79, 70, 229, 0.4)"
+                      : "none",
                     transition: "all 0.2s ease",
                     display: "inline-flex",
                     alignItems: "center",
@@ -281,10 +433,15 @@ export default function MyPublications() {
                   }}
                 >
                   <span>{tab.label}</span>
+
                   <span
                     style={{
-                      background: active ? "rgba(255, 255, 255, 0.25)" : "#f1f5f9",
-                      color: active ? "#ffffff" : "#475569",
+                      background: active
+                        ? "rgba(255, 255, 255, 0.25)"
+                        : "#f1f5f9",
+                      color: active
+                        ? "#ffffff"
+                        : "#475569",
                       padding: "0.15rem 0.5rem",
                       borderRadius: "999px",
                       fontSize: "0.74rem",
@@ -298,12 +455,29 @@ export default function MyPublications() {
             })}
           </div>
 
-          <div style={{ fontSize: "0.88rem", color: "#64748b", fontWeight: 600 }}>
-            Showing <span style={{ color: "#0f172a", fontWeight: 700 }}>{filteredPublications.length}</span> of {publications.length} publications
+          <div
+            style={{
+              fontSize: "0.88rem",
+              color: "#64748b",
+              fontWeight: 600,
+            }}
+          >
+            Showing{" "}
+            <span
+              style={{
+                color: "#0f172a",
+                fontWeight: 700,
+              }}
+            >
+              {filteredPublications.length}
+            </span>{" "}
+            of {publications.length} publications
           </div>
         </div>
 
-        {/* Loading State */}
+        {/* =====================================================
+            LOADING
+        ===================================================== */}
         {loading && (
           <div
             style={{
@@ -313,66 +487,133 @@ export default function MyPublications() {
               padding: "4rem 2rem",
               textAlign: "center",
               color: "#64748b",
-              boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
+              boxShadow:
+                "0 10px 25px -5px rgba(0, 0, 0, 0.05)",
             }}
           >
-            <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>⏳</div>
-            <h3 style={{ margin: "0 0 0.5rem", color: "#1e293b", fontSize: "1.15rem" }}>Loading Publications...</h3>
-            <p style={{ margin: 0, fontSize: "0.9rem" }}>Fetching your publication history from the secure server.</p>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && !error && filteredPublications.length === 0 && (
-          <div
-            style={{
-              background: "rgba(255, 255, 255, 0.95)",
-              borderRadius: "26px",
-              border: "2px dashed #cbd5e1",
-              padding: "4.5rem 2rem",
-              textAlign: "center",
-              boxShadow: "0 10px 30px -5px rgba(99, 102, 241, 0.08)",
-            }}
-          >
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📚</div>
-            <h3 style={{ fontSize: "1.3rem", fontWeight: 800, color: "#1e293b", margin: "0 0 0.5rem" }}>
-              {filterTab === "all"
-                ? "No publications submitted yet"
-                : `No ${filterTab} publications found`}
-            </h3>
-            <p style={{ color: "#64748b", fontSize: "0.92rem", maxWidth: "480px", margin: "0 auto 1.75rem" }}>
-              {filterTab === "all"
-                ? "You haven't recorded any research publications yet. Start building your portfolio by submitting your first paper."
-                : `There are currently no research papers marked as ${filterTab} in your record.`}
-            </p>
-            <Link
-              to="/add-publication"
+            <div
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                padding: "0.75rem 1.4rem",
-                borderRadius: "14px",
-                background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
-                color: "#ffffff",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                textDecoration: "none",
-                boxShadow: "0 8px 20px -3px rgba(79, 70, 229, 0.35)",
+                fontSize: "2.5rem",
+                marginBottom: "0.75rem",
               }}
             >
-              <span>🚀 Submit Publication</span>
-            </Link>
+              ⏳
+            </div>
+
+            <h3
+              style={{
+                margin: "0 0 0.5rem",
+                color: "#1e293b",
+                fontSize: "1.15rem",
+              }}
+            >
+              Loading Publications...
+            </h3>
+
+            <p
+              style={{
+                margin: 0,
+                fontSize: "0.9rem",
+              }}
+            >
+              Fetching your publication history from the secure
+              server.
+            </p>
           </div>
         )}
 
-        {/* Publication Cards Grid/List */}
+        {/* =====================================================
+            EMPTY STATE
+        ===================================================== */}
+        {!loading &&
+          !error &&
+          filteredPublications.length === 0 && (
+            <div
+              style={{
+                background: "rgba(255, 255, 255, 0.95)",
+                borderRadius: "26px",
+                border: "2px dashed #cbd5e1",
+                padding: "4.5rem 2rem",
+                textAlign: "center",
+                boxShadow:
+                  "0 10px 30px -5px rgba(99, 102, 241, 0.08)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: "3rem",
+                  marginBottom: "1rem",
+                }}
+              >
+                📚
+              </div>
+
+              <h3
+                style={{
+                  fontSize: "1.3rem",
+                  fontWeight: 800,
+                  color: "#1e293b",
+                  margin: "0 0 0.5rem",
+                }}
+              >
+                {filterTab === "all"
+                  ? "No publications submitted yet"
+                  : `No ${filterTab} publications found`}
+              </h3>
+
+              <p
+                style={{
+                  color: "#64748b",
+                  fontSize: "0.92rem",
+                  maxWidth: "480px",
+                  margin: "0 auto 1.75rem",
+                }}
+              >
+                {filterTab === "all"
+                  ? "You haven't recorded any research publications yet. Start building your portfolio by submitting your first paper."
+                  : `There are currently no research papers marked as ${filterTab} in your record.`}
+              </p>
+
+              <Link
+                to="/add-publication"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  padding: "0.75rem 1.4rem",
+                  borderRadius: "14px",
+                  background:
+                    "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  textDecoration: "none",
+                  boxShadow:
+                    "0 8px 20px -3px rgba(79, 70, 229, 0.35)",
+                }}
+              >
+                <span>🚀 Submit Publication</span>
+              </Link>
+            </div>
+          )}
+
+        {/* =====================================================
+            PUBLICATION CARDS
+        ===================================================== */}
         {!loading && filteredPublications.length > 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "1.25rem",
+            }}
+          >
             {filteredPublications.map((pub) => {
-              const isVerified = pub.verificationStatus === "verified";
-              const isPending = pub.verificationStatus === "pending";
-              const isRejected = pub.verificationStatus === "rejected";
+              const status = getStatus(pub);
+
+              const isVerified = status === "VERIFIED";
+              const isPending = status === "PENDING";
+              const isRejected = status === "REJECTED";
 
               return (
                 <div
@@ -387,19 +628,26 @@ export default function MyPublications() {
                       ? "2px solid #fca5a5"
                       : "2px solid #818cf8",
                     padding: "1.75rem 2rem",
-                    boxShadow: "0 10px 30px -8px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)",
+                    boxShadow:
+                      "0 10px 30px -8px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)",
                     transition: "all 0.25s ease",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = "translateY(-2px)";
-                    e.currentTarget.style.boxShadow = "0 18px 40px -10px rgba(99, 102, 241, 0.2)";
+                    e.currentTarget.style.transform =
+                      "translateY(-2px)";
+
+                    e.currentTarget.style.boxShadow =
+                      "0 18px 40px -10px rgba(99, 102, 241, 0.2)";
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = "translateY(0)";
-                    e.currentTarget.style.boxShadow = "0 10px 30px -8px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)";
+                    e.currentTarget.style.transform =
+                      "translateY(0)";
+
+                    e.currentTarget.style.boxShadow =
+                      "0 10px 30px -8px rgba(99, 102, 241, 0.12), 0 2px 6px rgba(0, 0, 0, 0.03)";
                   }}
                 >
-                  {/* Card Header Row */}
+                  {/* Card Header */}
                   <div
                     style={{
                       display: "flex",
@@ -410,8 +658,15 @@ export default function MyPublications() {
                       marginBottom: "0.9rem",
                     }}
                   >
-                    {/* Left Badges (Type & Year) */}
-                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.5rem" }}>
+                    {/* Type + Year */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                      }}
+                    >
                       <span
                         style={{
                           display: "inline-flex",
@@ -425,7 +680,18 @@ export default function MyPublications() {
                           fontWeight: 700,
                         }}
                       >
-                        <span>{pub.publicationType === "Conference" ? "🎤" : pub.publicationType === "Book Chapter" ? "📖" : pub.publicationType === "Patent" ? "💡" : "📄"}</span>
+                        <span>
+                          {pub.publicationType === "Conference"
+                            ? "🎤"
+                            : pub.publicationType ===
+                              "Book Chapter"
+                            ? "📖"
+                            : pub.publicationType ===
+                              "Patent"
+                            ? "💡"
+                            : "📄"}
+                        </span>
+
                         <span>{pub.publicationType}</span>
                       </span>
 
@@ -447,7 +713,7 @@ export default function MyPublications() {
                       </span>
                     </div>
 
-                    {/* Right Status Badge */}
+                    {/* Status */}
                     <div>
                       {isVerified && (
                         <span
@@ -462,7 +728,8 @@ export default function MyPublications() {
                             borderRadius: "999px",
                             fontSize: "0.82rem",
                             fontWeight: 700,
-                            boxShadow: "0 2px 6px rgba(34, 197, 94, 0.15)",
+                            boxShadow:
+                              "0 2px 6px rgba(34, 197, 94, 0.15)",
                           }}
                         >
                           <span>✅</span>
@@ -483,7 +750,8 @@ export default function MyPublications() {
                             borderRadius: "999px",
                             fontSize: "0.82rem",
                             fontWeight: 700,
-                            boxShadow: "0 2px 6px rgba(245, 158, 11, 0.15)",
+                            boxShadow:
+                              "0 2px 6px rgba(245, 158, 11, 0.15)",
                           }}
                         >
                           <span>⏳</span>
@@ -504,7 +772,8 @@ export default function MyPublications() {
                             borderRadius: "999px",
                             fontSize: "0.82rem",
                             fontWeight: 700,
-                            boxShadow: "0 2px 6px rgba(244, 63, 94, 0.15)",
+                            boxShadow:
+                              "0 2px 6px rgba(244, 63, 94, 0.15)",
                           }}
                         >
                           <span>❌</span>
@@ -528,7 +797,7 @@ export default function MyPublications() {
                     {pub.paperTitle}
                   </h2>
 
-                  {/* Journal / Conference Name */}
+                  {/* Journal / Conference */}
                   <p
                     style={{
                       fontSize: "0.95rem",
@@ -540,10 +809,12 @@ export default function MyPublications() {
                     }}
                   >
                     <span>🏛️</span>
-                    <span style={{ fontWeight: 600 }}>{pub.journalConference}</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {pub.journalConference}
+                    </span>
                   </p>
 
-                  {/* DOI & Action Section */}
+                  {/* DOI + Edit */}
                   <div
                     style={{
                       display: "flex",
@@ -555,11 +826,14 @@ export default function MyPublications() {
                       borderTop: "1px solid #f1f5f9",
                     }}
                   >
-                    {/* DOI Badge with Clickable Link */}
                     <div>
                       {pub.DOI ? (
                         <a
-                          href={pub.DOI.startsWith("http") ? pub.DOI : `https://doi.org/${pub.DOI}`}
+                          href={
+                            pub.DOI.startsWith("http")
+                              ? pub.DOI
+                              : `https://doi.org/${pub.DOI}`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           style={{
@@ -576,27 +850,28 @@ export default function MyPublications() {
                             textDecoration: "none",
                             transition: "all 0.2s ease",
                           }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = "#dbeafe";
-                            e.currentTarget.style.borderColor = "#93c5fd";
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = "#eff6ff";
-                            e.currentTarget.style.borderColor = "#bfdbfe";
-                          }}
                         >
                           <span>🔗</span>
-                          <span>DOI: <strong>{pub.DOI}</strong></span>
-                          <span style={{ fontSize: "0.75rem" }}>↗</span>
+                          <span>
+                            DOI: <strong>{pub.DOI}</strong>
+                          </span>
+                          <span style={{ fontSize: "0.75rem" }}>
+                            ↗
+                          </span>
                         </a>
                       ) : (
-                        <span style={{ fontSize: "0.82rem", color: "#94a3b8", fontStyle: "italic" }}>
+                        <span
+                          style={{
+                            fontSize: "0.82rem",
+                            color: "#94a3b8",
+                            fontStyle: "italic",
+                          }}
+                        >
                           No DOI recorded
                         </span>
                       )}
                     </div>
 
-                    {/* Edit Button */}
                     <button
                       onClick={() => openEditModal(pub)}
                       style={{
@@ -611,18 +886,23 @@ export default function MyPublications() {
                         fontWeight: 700,
                         fontSize: "0.86rem",
                         cursor: "pointer",
-                        boxShadow: "0 2px 6px rgba(0, 0, 0, 0.04)",
+                        boxShadow:
+                          "0 2px 6px rgba(0, 0, 0, 0.04)",
                         transition: "all 0.2s ease",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = "#6366f1";
+                        e.currentTarget.style.borderColor =
+                          "#6366f1";
                         e.currentTarget.style.color = "#4f46e5";
-                        e.currentTarget.style.background = "#f5f3ff";
+                        e.currentTarget.style.background =
+                          "#f5f3ff";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "#cbd5e1";
+                        e.currentTarget.style.borderColor =
+                          "#cbd5e1";
                         e.currentTarget.style.color = "#334155";
-                        e.currentTarget.style.background = "#ffffff";
+                        e.currentTarget.style.background =
+                          "#ffffff";
                       }}
                     >
                       <span>✏️</span>
@@ -630,7 +910,7 @@ export default function MyPublications() {
                     </button>
                   </div>
 
-                  {/* Helpful status hint */}
+                  {/* Rejected Hint */}
                   {isRejected && (
                     <div
                       style={{
@@ -647,7 +927,13 @@ export default function MyPublications() {
                       }}
                     >
                       <span>💡</span>
-                      <span><strong>Admin Note:</strong> This paper was not approved. Click <strong>Edit Publication</strong> to fix the journal title or DOI and re-submit.</span>
+
+                      <span>
+                        <strong>Admin Note:</strong> This paper was
+                        not approved. Click{" "}
+                        <strong>Edit Publication</strong> to fix
+                        the journal title or DOI and re-submit.
+                      </span>
                     </div>
                   )}
                 </div>
@@ -655,10 +941,11 @@ export default function MyPublications() {
             })}
           </div>
         )}
-
       </main>
 
-      {/* Edit Publication Modal */}
+      {/* =====================================================
+          EDIT PUBLICATION MODAL
+      ===================================================== */}
       {editingPub && (
         <div
           style={{
@@ -683,9 +970,9 @@ export default function MyPublications() {
               border: "2px solid #818cf8",
               maxWidth: "600px",
               width: "100%",
-              padding: "2.2rem 2.2rem",
-              boxShadow: "0 25px 50px -12px rgba(15, 23, 42, 0.35)",
-              animation: "cardZoomIn 0.25s ease-out",
+              padding: "2.2rem",
+              boxShadow:
+                "0 25px 50px -12px rgba(15, 23, 42, 0.35)",
             }}
           >
             {/* Modal Header */}
@@ -700,13 +987,28 @@ export default function MyPublications() {
               }}
             >
               <div>
-                <h2 style={{ fontSize: "1.4rem", fontWeight: 800, color: "#0f172a", margin: "0 0 0.25rem" }}>
+                <h2
+                  style={{
+                    fontSize: "1.4rem",
+                    fontWeight: 800,
+                    color: "#0f172a",
+                    margin: "0 0 0.25rem",
+                  }}
+                >
                   ✏️ Edit Publication
                 </h2>
-                <p style={{ margin: 0, fontSize: "0.85rem", color: "#64748b" }}>
+
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: "0.85rem",
+                    color: "#64748b",
+                  }}
+                >
                   Update your research paper information.
                 </p>
               </div>
+
               <button
                 onClick={closeEditModal}
                 style={{
@@ -746,13 +1048,28 @@ export default function MyPublications() {
             )}
 
             {/* Edit Form */}
-            <form onSubmit={handleSaveEdit} style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
-              
+            <form
+              onSubmit={handleSaveEdit}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: "1.1rem",
+              }}
+            >
               {/* Paper Title */}
               <div>
-                <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.4rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.86rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.4rem",
+                  }}
+                >
                   Paper Title *
                 </label>
+
                 <input
                   type="text"
                   name="paperTitle"
@@ -771,16 +1088,32 @@ export default function MyPublications() {
                 />
               </div>
 
-              {/* Type and Year Grid */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              {/* Type and Year */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                }}
+              >
                 <div>
-                  <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.4rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.86rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.4rem",
+                    }}
+                  >
                     Publication Type *
                   </label>
+
                   <select
                     name="publicationType"
                     value={editFormData.publicationType}
                     onChange={handleEditChange}
+                    required
                     style={{
                       width: "100%",
                       boxSizing: "border-box",
@@ -793,16 +1126,29 @@ export default function MyPublications() {
                     }}
                   >
                     <option value="Journal">Journal</option>
-                    <option value="Conference">Conference</option>
-                    <option value="Book Chapter">Book Chapter</option>
+                    <option value="Conference">
+                      Conference
+                    </option>
+                    <option value="Book Chapter">
+                      Book Chapter
+                    </option>
                     <option value="Patent">Patent</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.4rem" }}>
+                  <label
+                    style={{
+                      display: "block",
+                      fontSize: "0.86rem",
+                      fontWeight: 700,
+                      color: "#1e293b",
+                      marginBottom: "0.4rem",
+                    }}
+                  >
                     Publication Year *
                   </label>
+
                   <input
                     type="number"
                     name="publicationYear"
@@ -826,9 +1172,18 @@ export default function MyPublications() {
 
               {/* Journal / Conference */}
               <div>
-                <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.4rem" }}>
-                  Journal / Conference Name *
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.86rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.4rem",
+                  }}
+                >
+                  Journal / Conference / Publisher Name *
                 </label>
+
                 <input
                   type="text"
                   name="journalConference"
@@ -849,9 +1204,18 @@ export default function MyPublications() {
 
               {/* DOI */}
               <div>
-                <label style={{ display: "block", fontSize: "0.86rem", fontWeight: 700, color: "#1e293b", marginBottom: "0.4rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.86rem",
+                    fontWeight: 700,
+                    color: "#1e293b",
+                    marginBottom: "0.4rem",
+                  }}
+                >
                   Digital Object Identifier (DOI)
                 </label>
+
                 <input
                   type="text"
                   name="DOI"
@@ -870,8 +1234,15 @@ export default function MyPublications() {
                 />
               </div>
 
-              {/* Modal Buttons */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.75rem", marginTop: "1rem" }}>
+              {/* Buttons */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "0.75rem",
+                  marginTop: "1rem",
+                }}
+              >
                 <button
                   type="button"
                   onClick={closeEditModal}
@@ -887,24 +1258,29 @@ export default function MyPublications() {
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={savingEdit}
                   style={{
                     padding: "0.7rem 1.5rem",
                     borderRadius: "12px",
-                    background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
+                    background:
+                      "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)",
                     border: "none",
                     color: "#ffffff",
                     fontWeight: 700,
-                    cursor: savingEdit ? "not-allowed" : "pointer",
-                    boxShadow: "0 6px 16px -2px rgba(79, 70, 229, 0.4)",
+                    cursor: savingEdit
+                      ? "not-allowed"
+                      : "pointer",
+                    boxShadow:
+                      "0 6px 16px -2px rgba(79, 70, 229, 0.4)",
+                    opacity: savingEdit ? 0.7 : 1,
                   }}
                 >
                   {savingEdit ? "Saving..." : "Save Changes"}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
@@ -912,4 +1288,3 @@ export default function MyPublications() {
     </div>
   );
 }
-

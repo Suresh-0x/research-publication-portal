@@ -1,157 +1,134 @@
 const express = require("express");
-const Publication = require("../models/Publication");
-const { protect, isAdmin, isFaculty } = require("../middleware/authMiddleware");
+
+const {
+  addPublication,
+  getPublications,
+  getPublicationById,
+  updatePublication,
+  verifyPublication,
+  deletePublication,
+  getPublicationStats,
+} = require("../controllers/publicationController");
+
+const {
+  protect,
+  isAdmin,
+  isFaculty,
+} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
-// @route   POST /publications
-// @desc    Faculty adds a new publication
-router.post("/", protect, isFaculty, async (req, res) => {
-  try {
-    const { paperTitle, publicationType, journalConference, publicationYear, DOI } = req.body;
+/*
+=========================================================
+PUBLICATION ROUTES
+=========================================================
+*/
 
-    const publication = await Publication.create({
-      facultyId: req.user.id,
-      paperTitle,
-      publicationType,
-      journalConference,
-      publicationYear,
-      DOI,
-      verificationStatus: "pending",
-    });
+/*
+---------------------------------------------------------
+GET PUBLICATION STATISTICS
+Faculty + Admin
+---------------------------------------------------------
+IMPORTANT:
+Keep /stats before /:id
+---------------------------------------------------------
+*/
 
-    res.status(201).json({ message: "Publication added successfully", publication });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.get(
+  "/stats",
+  protect,
+  getPublicationStats
+);
 
-// @route   GET /publications/stats
-// @desc    Fast aggregated publication counters (Total, Pending, Verified, Rejected)
-//          Supports ?mine=true for faculty dashboard
-router.get("/stats", protect, async (req, res) => {
-  try {
-    const filter = {};
-    if (req.query.mine === "true") {
-      filter.facultyId = req.user.id;
-    }
 
-    const [total, pending, verified, rejected] = await Promise.all([
-      Publication.countDocuments(filter),
-      Publication.countDocuments({ ...filter, verificationStatus: "pending" }),
-      Publication.countDocuments({ ...filter, verificationStatus: "verified" }),
-      Publication.countDocuments({ ...filter, verificationStatus: "rejected" }),
-    ]);
+/*
+---------------------------------------------------------
+GET ALL PUBLICATIONS
+Faculty + Admin
+---------------------------------------------------------
+*/
 
-    res.status(200).json({ total, pending, verified, rejected });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.get(
+  "/",
+  protect,
+  getPublications
+);
 
-// @route   GET /publications
-// @desc    Get all publications (supports search/filter via query params)
-//          e.g. /publications?search=machine+learning&year=2024&status=verified
-//          Faculty see their own via /publications?mine=true
-router.get("/", protect, async (req, res) => {
-  try {
-    const { search, year, status, mine, type, journalConference, doi, limit, page } = req.query;
-    const filter = {};
 
-    if (mine === "true") {
-      filter.facultyId = req.user.id;
-    }
-    
-    // Search across Title, Journal/Conference, or DOI
-    if (search) {
-      filter.$or = [
-        { paperTitle: { $regex: search, $options: "i" } },
-        { journalConference: { $regex: search, $options: "i" } },
-        { DOI: { $regex: search, $options: "i" } },
-      ];
-    }
-    if (journalConference) {
-      filter.journalConference = { $regex: journalConference, $options: "i" };
-    }
-    if (doi) {
-      filter.DOI = { $regex: doi, $options: "i" };
-    }
-    if (year) {
-      filter.publicationYear = year;
-    }
-    if (type) {
-      filter.publicationType = type;
-    }
-    if (status) {
-      filter.verificationStatus = status;
-    }
+/*
+---------------------------------------------------------
+ADD PUBLICATION
+Faculty only
+---------------------------------------------------------
+*/
 
-    let query = Publication.find(filter)
-      .populate("facultyId", "name email")
-      .sort({ createdAt: -1 })
-      .lean();
+router.post(
+  "/",
+  protect,
+  isFaculty,
+  addPublication
+);
 
-    if (limit) {
-      const pageNum = Math.max(1, parseInt(page, 10) || 1);
-      const limitNum = Math.max(1, parseInt(limit, 10) || 20);
-      query = query.skip((pageNum - 1) * limitNum).limit(limitNum);
-    }
 
-    const publications = await query;
+/*
+---------------------------------------------------------
+GET SINGLE PUBLICATION
+Faculty + Admin
+---------------------------------------------------------
+*/
 
-    res.status(200).json(publications);
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.get(
+  "/:id",
+  protect,
+  getPublicationById
+);
 
-// @route   PUT /publications/:id
-// @desc    Faculty updates own publication OR admin verifies/edits any publication
-router.put("/:id", protect, async (req, res) => {
-  try {
-    const publication = await Publication.findById(req.params.id);
 
-    if (!publication) {
-      return res.status(404).json({ message: "Publication not found" });
-    }
+/*
+---------------------------------------------------------
+UPDATE PUBLICATION
+Faculty: own publication
+Admin: any publication
 
-    const isOwner = publication.facultyId.toString() === req.user.id;
-    const isAdminUser = req.user.role === "admin";
+Verification status cannot be changed here.
+---------------------------------------------------------
+*/
 
-    if (!isOwner && !isAdminUser) {
-      return res.status(403).json({ message: "Not authorized to update this publication" });
-    }
+router.put(
+  "/:id",
+  protect,
+  updatePublication
+);
 
-    // Only admins can change verification status
-    if (req.body.verificationStatus && !isAdminUser) {
-      delete req.body.verificationStatus;
-    }
 
-    const updated = await Publication.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+/*
+---------------------------------------------------------
+VERIFY / REJECT PUBLICATION
+Admin only
+---------------------------------------------------------
+*/
 
-    res.status(200).json({ message: "Publication updated", publication: updated });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.put(
+  "/:id/verify",
+  protect,
+  isAdmin,
+  verifyPublication
+);
 
-// @route   DELETE /publications/:id
-// @desc    Admin only - delete a publication
-router.delete("/:id", protect, isAdmin, async (req, res) => {
-  try {
-    const publication = await Publication.findByIdAndDelete(req.params.id);
 
-    if (!publication) {
-      return res.status(404).json({ message: "Publication not found" });
-    }
+/*
+---------------------------------------------------------
+DELETE PUBLICATION
+Admin only
+---------------------------------------------------------
+*/
 
-    res.status(200).json({ message: "Publication deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-});
+router.delete(
+  "/:id",
+  protect,
+  isAdmin,
+  deletePublication
+);
+
 
 module.exports = router;

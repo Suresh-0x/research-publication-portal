@@ -1,342 +1,962 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import api from "../api/axios";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 
-export default function Register() {
+const Register = () => {
   const navigate = useNavigate();
-
-  const [step, setStep] = useState(1); // 1 = Email+OTP, 2 = Full Register form
 
   const [formData, setFormData] = useState({
     name: "",
+    facultyId: "",
+    adminId: "",
     email: "",
     password: "",
+    confirmPassword: "",
     role: "faculty",
+    department: "",
   });
 
-  const [showPassword, setShowPassword] = useState(false); // 👈 Added password show/hide state
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [, setOtpVerified] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
+  const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    if (error) setError("");
-  };
+    const { name, value } = e.target;
 
-  // Step 1: Send OTP
-  const handleSendOtp = async () => {
-    if (!formData.email) return setError("Please enter your email first.");
-    setLoading(true);
-    setError("");
-    try {
-      const res = await api.post("/send-otp", { email: formData.email });
-      setOtpSent(true);
-      if (res.data?.otp) {
-        setOtp(res.data.otp);
-        setSuccess(`Verification code: ${res.data.otp}`);
-      } else {
-        setSuccess(res.data?.message || "OTP sent! Check your inbox.");
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to send OTP.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
-  // Step 2: Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!otp) return setError("Please enter the OTP.");
-    setLoading(true);
-    setError("");
-    try {
-      await api.post("/verify-otp", { email: formData.email, otp });
-      setOtpVerified(true);
-      setStep(2);
-      setSuccess("");
+    if (error) {
       setError("");
-    } catch (err) {
-      setError(err.response?.data?.message || "Invalid OTP.");
-    } finally {
-      setLoading(false);
+    }
+
+    if (message) {
+      setMessage("");
     }
   };
 
-  // Step 3: Register
+  const handleRoleChange = (e) => {
+    const role = e.target.value;
+
+    setFormData((prev) => ({
+      ...prev,
+      role,
+      facultyId: "",
+      adminId: "",
+      department: "",
+    }));
+
+    setError("");
+    setMessage("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     setError("");
-    setSuccess("");
+    setMessage("");
+
+    // Password validation
+    if (formData.password.length < 6) {
+      setError("Password must contain at least 6 characters.");
+      return;
+    }
+
+    // Confirm password validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Faculty validation
+    if (
+      formData.role === "faculty" &&
+      !formData.facultyId.trim()
+    ) {
+      setError("Please enter your Faculty ID.");
+      return;
+    }
+
+    // Department validation
+    if (
+      formData.role === "faculty" &&
+      !formData.department
+    ) {
+      setError("Please select your department.");
+      return;
+    }
+
+    // Admin validation
+    if (
+      formData.role === "admin" &&
+      !formData.adminId.trim()
+    ) {
+      setError("Please enter your Admin ID.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await api.post("/register", formData);
-      setSuccess("Registration successful! Redirecting to login...");
-      setTimeout(() => navigate("/login"), 1500);
+      const data = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        password: formData.password,
+        role: formData.role,
+      };
+
+      if (formData.role === "faculty") {
+        data.facultyId = formData.facultyId.trim();
+        data.department = formData.department;
+      }
+
+      if (formData.role === "admin") {
+        data.adminId = formData.adminId.trim();
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/register",
+        data
+      );
+
+      setMessage(
+        response.data.message ||
+          "Registration successful!"
+      );
+
+      setFormData({
+        name: "",
+        facultyId: "",
+        adminId: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        role: "faculty",
+        department: "",
+      });
+
+      // Redirect to login after successful registration
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong.");
+      console.error("Registration error:", err);
+
+      setError(
+        err?.response?.data?.message ||
+          "Registration failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="auth-shell">
-      <div className="auth-card" style={{ maxWidth: "440px", padding: "2.5rem 2.2rem" }}>
+    <div style={styles.page}>
+      <div style={styles.registerContainer}>
 
-        {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: "1.75rem" }}>
-          <div style={{
-            width: "52px", height: "52px", borderRadius: "16px",
-            background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
-            color: "#fff", display: "flex", alignItems: "center",
-            justifyContent: "center", margin: "0 auto 1rem",
-            boxShadow: "0 8px 20px -4px rgba(99,102,241,0.4)",
-          }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <line x1="19" y1="8" x2="19" y2="14"/>
-              <line x1="22" y1="11" x2="16" y2="11"/>
+        {/* =========================
+            LEFT BRAND SECTION
+        ========================== */}
+
+        <div style={styles.brandSection}>
+          <div style={styles.brandIcon}>
+            <svg
+              width="30"
+              height="30"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
+              <path d="M8 6h8" />
+              <path d="M8 10h8" />
             </svg>
           </div>
-          <h2 style={{ fontSize: "1.65rem", fontWeight: 700, margin: 0 }}>
-            {step === 1 ? "Verify Your Email" : "Create Account"}
-          </h2>
-          <p style={{ fontSize: "0.86rem", color: "var(--text-muted)", marginTop: "0.4rem" }}>
-            {step === 1
-              ? "We'll send a 6-digit code to confirm your email."
-              : "Fill in your details to complete registration."}
+
+          <h1 style={styles.brandTitle}>
+            Join the Research
+            <br />
+            Publication Portal
+          </h1>
+
+          <p style={styles.brandDescription}>
+            Create your account to manage and track
+            academic research publications efficiently.
           </p>
-        </div>
 
-        {/* Step Indicator */}
-        <div style={{ display: "flex", justifyContent: "center", gap: "0.5rem", marginBottom: "1.5rem" }}>
-          {[1, 2].map((s) => (
-            <div key={s} style={{
-              width: s === step ? "2.5rem" : "0.75rem",
-              height: "0.35rem",
-              borderRadius: "999px",
-              background: s <= step ? "var(--primary)" : "#e2e8f0",
-              transition: "all 0.3s ease",
-            }} />
-          ))}
-        </div>
-
-        {/* Alerts */}
-        {error && (
-          <div className="alert alert-error" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.2rem" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span>{error}</span>
-          </div>
-        )}
-        {success && (
-          <div className="alert alert-success" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1.2rem" }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <span>{success}</span>
-          </div>
-        )}
-
-        {/* ==================== STEP 1: Email OTP ==================== */}
-        {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {/* Email Input */}
-            <div>
-              <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>
-                Email Address
-              </label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
-                <svg style={{ position: "absolute", left: "1rem", color: "#94a3b8", pointerEvents: "none" }}
-                  width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect width="20" height="16" x="2" y="4" rx="2"/>
-                  <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-                </svg>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="field-input"
-                  placeholder="you@college.edu"
-                  disabled={otpSent}
-                  style={{ paddingLeft: "2.75rem", boxSizing: "border-box" }}
-                  required
-                />
-              </div>
+          <div style={styles.features}>
+            <div style={styles.feature}>
+              <span style={styles.featureIcon}>✓</span>
+              <span>Faculty publication management</span>
             </div>
 
-            {/* Send OTP Button */}
-            {!otpSent ? (
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={handleSendOtp}
-                disabled={loading}
-                style={{ width: "100%", height: "46px", borderRadius: "12px", fontWeight: 600, margin: 0 }}
+            <div style={styles.feature}>
+              <span style={styles.featureIcon}>✓</span>
+              <span>Publication verification tracking</span>
+            </div>
+
+            <div style={styles.feature}>
+              <span style={styles.featureIcon}>✓</span>
+              <span>Department-wise research analytics</span>
+            </div>
+          </div>
+        </div>
+
+        {/* =========================
+            RIGHT FORM SECTION
+        ========================== */}
+
+        <div style={styles.formSection}>
+
+          <div style={styles.formHeader}>
+            <p style={styles.smallHeading}>
+              CREATE ACCOUNT
+            </p>
+
+            <h2 style={styles.title}>
+              Register your account
+            </h2>
+
+            <p style={styles.subtitle}>
+              Enter your details to get started.
+            </p>
+          </div>
+
+          {/* SUCCESS MESSAGE */}
+          {message && (
+            <div style={styles.successBox}>
+              <span style={styles.successIcon}>✓</span>
+              <span>{message}</span>
+            </div>
+          )}
+
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div style={styles.errorBox}>
+              <span style={styles.errorIcon}>!</span>
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+
+            {/* NAME */}
+            <div style={styles.inputGroup}>
+              <label
+                htmlFor="name"
+                style={styles.label}
               >
-                {loading ? "Sending..." : "Send Verification Code"}
-              </button>
-            ) : (
-              <>
-                {/* OTP Input */}
-                <div>
-                  <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>
-                    Enter 6-Digit OTP
-                  </label>
-                  <input
-                    type="text"
-                    value={otp}
-                    onChange={(e) => { setOtp(e.target.value); if (error) setError(""); }}
-                    className="field-input"
-                    placeholder="_ _ _ _ _ _"
-                    maxLength={6}
-                    style={{
-                      textAlign: "center",
-                      fontSize: "1.5rem",
-                      fontWeight: 700,
-                      letterSpacing: "0.5rem",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                </div>
+                Full Name
+              </label>
 
-                {/* Verify Button */}
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleVerifyOtp}
-                  disabled={loading || otp.length !== 6}
-                  style={{ width: "100%", height: "46px", borderRadius: "12px", fontWeight: 600, margin: 0 }}
-                >
-                  {loading ? "Verifying..." : "Verify OTP"}
-                </button>
-
-                {/* Resend OTP */}
-                <p style={{ textAlign: "center", fontSize: "0.82rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                  Didn't receive?{" "}
-                  <button
-                    type="button"
-                    onClick={() => { setOtpSent(false); setOtp(""); setSuccess(""); }}
-                    style={{ background: "none", border: "none", color: "var(--primary)", fontWeight: 600, cursor: "pointer", fontSize: "0.82rem" }}
+              <div style={styles.inputWrapper}>
+                <span style={styles.inputIcon}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
                   >
-                    Resend OTP
-                  </button>
-                </p>
-              </>
-            )}
-          </div>
-        )}
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 21a8 8 0 0 1 16 0" />
+                  </svg>
+                </span>
 
-        {/* ==================== STEP 2: Registration Form ==================== */}
-        {step === 2 && (
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-            {/* Name */}
-            <div>
-              <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>Full Name</label>
-              <input type="text" name="name" value={formData.name}
-                onChange={handleChange} required className="field-input"
-                placeholder="Dr. Suresh Kumar" style={{ boxSizing: "border-box" }} />
-            </div>
-
-            {/* Email (Read-only - verified) */}
-            <div>
-              <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>
-                Email Address{" "}
-                <span style={{ color: "#10b981", fontSize: "0.78rem", fontWeight: 600 }}>✓ Verified</span>
-              </label>
-              <input type="email" value={formData.email} readOnly className="field-input"
-                style={{ background: "#f0fdf4", border: "1.5px solid #a7f3d0", boxSizing: "border-box", color: "#065f46" }} />
-            </div>
-
-            {/* Password with Show/Hide Toggle */}
-            <div>
-              <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>
-                Password
-              </label>
-              <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
+                  id="name"
+                  name="name"
+                  type="text"
+                  placeholder="Enter your full name"
+                  value={formData.name}
                   onChange={handleChange}
                   required
-                  minLength={6}
-                  className="field-input"
-                  placeholder="At least 6 characters"
-                  style={{ width: "100%", paddingRight: "2.8rem", boxSizing: "border-box" }}
+                  style={styles.input}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                  style={{
-                    position: "absolute",
-                    right: "0.75rem",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    color: "#94a3b8",
-                    cursor: "pointer",
-                    padding: "4px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {showPassword ? (
-                    // Eye Off Icon
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-                      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-                      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-                      <line x1="2" y1="2" x2="22" y2="22" />
-                    </svg>
-                  ) : (
-                    // Eye Open Icon
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  )}
-                </button>
               </div>
             </div>
 
-            {/* Role */}
-            <div>
-              <label className="field-label" style={{ display: "block", marginBottom: "0.45rem", fontWeight: 600, fontSize: "0.85rem" }}>Register As</label>
-              <select name="role" value={formData.role} onChange={handleChange}
-                className="field-input" style={{ boxSizing: "border-box" }}>
-                <option value="faculty">Faculty</option>
-                <option value="admin">Admin</option>
+            {/* ROLE */}
+            <div style={styles.inputGroup}>
+              <label
+                htmlFor="role"
+                style={styles.label}
+              >
+                Register As
+              </label>
+
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleRoleChange}
+                required
+                style={styles.select}
+              >
+                <option value="faculty">
+                  Faculty
+                </option>
+
+                <option value="admin">
+                  Administrator
+                </option>
               </select>
             </div>
 
-            <button type="submit" disabled={loading} className="btn btn-primary"
-              style={{ width: "100%", height: "46px", borderRadius: "12px", fontWeight: 600, margin: 0 }}>
-              {loading ? "Creating Account..." : "Create Account"}
+            {/* FACULTY FIELDS */}
+            {formData.role === "faculty" && (
+              <>
+                {/* FACULTY ID */}
+                <div style={styles.inputGroup}>
+                  <label
+                    htmlFor="facultyId"
+                    style={styles.label}
+                  >
+                    Faculty ID
+                  </label>
+
+                  <div style={styles.inputWrapper}>
+                    <span style={styles.inputIcon}>
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                      >
+                        <rect
+                          x="3"
+                          y="4"
+                          width="18"
+                          height="16"
+                          rx="2"
+                        />
+                        <path d="M7 8h10" />
+                        <path d="M7 12h6" />
+                        <path d="M7 16h4" />
+                      </svg>
+                    </span>
+
+                    <input
+                      id="facultyId"
+                      name="facultyId"
+                      type="text"
+                      placeholder="Example: F101"
+                      value={formData.facultyId}
+                      onChange={handleChange}
+                      required
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                {/* DEPARTMENT */}
+                <div style={styles.inputGroup}>
+                  <label
+                    htmlFor="department"
+                    style={styles.label}
+                  >
+                    Department
+                  </label>
+
+                  <select
+                    id="department"
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    required
+                    style={styles.select}
+                  >
+                    <option value="">
+                      Select your department
+                    </option>
+
+                    <option value="CSE">
+                      Computer Science & Engineering
+                    </option>
+
+                    <option value="ECE">
+                      Electronics & Communication Engineering
+                    </option>
+
+                    <option value="EEE">
+                      Electrical & Electronics Engineering
+                    </option>
+
+                    <option value="MECH">
+                      Mechanical Engineering
+                    </option>
+
+                    <option value="CIVIL">
+                      Civil Engineering
+                    </option>
+
+                    <option value="IT">
+                      Information Technology
+                    </option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* ADMIN ID */}
+            {formData.role === "admin" && (
+              <div style={styles.inputGroup}>
+                <label
+                  htmlFor="adminId"
+                  style={styles.label}
+                >
+                  Admin ID
+                </label>
+
+                <div style={styles.inputWrapper}>
+                  <span style={styles.inputIcon}>
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                    >
+                      <path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z" />
+                      <path d="M9 12l2 2 4-4" />
+                    </svg>
+                  </span>
+
+                  <input
+                    id="adminId"
+                    name="adminId"
+                    type="text"
+                    placeholder="Example: A101"
+                    value={formData.adminId}
+                    onChange={handleChange}
+                    required
+                    style={styles.input}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* EMAIL */}
+            <div style={styles.inputGroup}>
+              <label
+                htmlFor="email"
+                style={styles.label}
+              >
+                Email Address
+              </label>
+
+              <div style={styles.inputWrapper}>
+                <span style={styles.inputIcon}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect
+                      x="3"
+                      y="5"
+                      width="18"
+                      height="14"
+                      rx="2"
+                    />
+                    <path d="m3 7 9 6 9-6" />
+                  </svg>
+                </span>
+
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  placeholder="you@college.edu"
+                  value={formData.email}
+                  onChange={handleChange}
+                  autoComplete="email"
+                  required
+                  style={styles.input}
+                />
+              </div>
+            </div>
+
+            {/* PASSWORD */}
+            <div style={styles.inputGroup}>
+              <label
+                htmlFor="password"
+                style={styles.label}
+              >
+                Password
+              </label>
+
+              <div style={styles.inputWrapper}>
+                <span style={styles.inputIcon}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect
+                      x="4"
+                      y="10"
+                      width="16"
+                      height="11"
+                      rx="2"
+                    />
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+
+                <input
+                  id="password"
+                  name="password"
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
+                  placeholder="Create a password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  required
+                  style={{
+                    ...styles.input,
+                    paddingRight: "48px",
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowPassword(
+                      (prev) => !prev
+                    )
+                  }
+                  style={styles.eyeButton}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
+
+              <p style={styles.hint}>
+                Password must contain at least 6 characters.
+              </p>
+            </div>
+
+            {/* CONFIRM PASSWORD */}
+            <div style={styles.inputGroup}>
+              <label
+                htmlFor="confirmPassword"
+                style={styles.label}
+              >
+                Confirm Password
+              </label>
+
+              <div style={styles.inputWrapper}>
+                <span style={styles.inputIcon}>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect
+                      x="4"
+                      y="10"
+                      width="16"
+                      height="11"
+                      rx="2"
+                    />
+                    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                  </svg>
+                </span>
+
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={
+                    showConfirmPassword
+                      ? "text"
+                      : "password"
+                  }
+                  placeholder="Re-enter your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  required
+                  style={{
+                    ...styles.input,
+                    paddingRight: "48px",
+                  }}
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setShowConfirmPassword(
+                      (prev) => !prev
+                    )
+                  }
+                  style={styles.eyeButton}
+                >
+                  {showConfirmPassword
+                    ? "Hide"
+                    : "Show"}
+                </button>
+              </div>
+            </div>
+
+            {/* SUBMIT */}
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                ...styles.registerButton,
+                opacity: loading ? 0.7 : 1,
+              }}
+            >
+              {loading
+                ? "Creating Account..."
+                : "Create Account"}
+
+              {!loading && (
+                <span style={styles.arrow}>
+                  →
+                </span>
+              )}
             </button>
           </form>
-        )}
 
-        {/* Footer */}
-        <p className="footer-text" style={{ marginTop: "1.5rem", marginBottom: 0 }}>
-          Already have an account?{" "}
-          <Link to="/login" style={{ fontWeight: 600, color: "var(--primary)", textDecoration: "none" }}>
-            Login here
-          </Link>
-        </p>
+          {/* LOGIN LINK */}
+          <div style={styles.loginText}>
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              style={styles.loginLink}
+            >
+              Sign in
+            </Link>
+          </div>
+
+          <div style={styles.bottomText}>
+            Research Publication Management Portal
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+
+/* =================================
+   STYLES
+================================= */
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    background: "#f4f7fb",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "30px 20px",
+    boxSizing: "border-box",
+    fontFamily:
+      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  },
+
+  registerContainer: {
+    width: "100%",
+    maxWidth: "1050px",
+    background: "#ffffff",
+    borderRadius: "20px",
+    overflow: "hidden",
+    display: "grid",
+    gridTemplateColumns: "38% 62%",
+    boxShadow:
+      "0 20px 60px rgba(15, 23, 42, 0.10)",
+  },
+
+  brandSection: {
+    background: "#1e3a8a",
+    color: "#ffffff",
+    padding: "50px 42px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+  },
+
+  brandIcon: {
+    width: "58px",
+    height: "58px",
+    borderRadius: "14px",
+    background: "rgba(255,255,255,0.13)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "27px",
+  },
+
+  brandTitle: {
+    fontSize: "29px",
+    lineHeight: "1.25",
+    fontWeight: 700,
+    margin: "0 0 17px",
+    letterSpacing: "-0.5px",
+  },
+
+  brandDescription: {
+    fontSize: "14px",
+    lineHeight: "1.7",
+    color: "#dbeafe",
+    margin: "0 0 32px",
+    maxWidth: "330px",
+  },
+
+  features: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+
+  feature: {
+    display: "flex",
+    alignItems: "center",
+    gap: "11px",
+    fontSize: "13px",
+    color: "#eff6ff",
+  },
+
+  featureIcon: {
+    width: "22px",
+    height: "22px",
+    borderRadius: "50%",
+    background: "#ffffff",
+    color: "#1e3a8a",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "12px",
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+
+  formSection: {
+    padding: "45px 55px",
+  },
+
+  formHeader: {
+    marginBottom: "22px",
+  },
+
+  smallHeading: {
+    margin: "0 0 7px",
+    color: "#2563eb",
+    fontSize: "11px",
+    fontWeight: 700,
+    letterSpacing: "1.2px",
+  },
+
+  title: {
+    margin: "0 0 7px",
+    color: "#172033",
+    fontSize: "26px",
+    fontWeight: 700,
+  },
+
+  subtitle: {
+    margin: 0,
+    color: "#64748b",
+    fontSize: "13px",
+  },
+
+  inputGroup: {
+    marginBottom: "16px",
+  },
+
+  label: {
+    display: "block",
+    marginBottom: "7px",
+    color: "#334155",
+    fontSize: "12px",
+    fontWeight: 600,
+  },
+
+  inputWrapper: {
+    position: "relative",
+    display: "flex",
+    alignItems: "center",
+  },
+
+  inputIcon: {
+    position: "absolute",
+    left: "14px",
+    color: "#94a3b8",
+    display: "flex",
+    alignItems: "center",
+    zIndex: 1,
+  },
+
+  input: {
+    width: "100%",
+    height: "43px",
+    boxSizing: "border-box",
+    border: "1px solid #dbe2ea",
+    borderRadius: "8px",
+    outline: "none",
+    padding: "0 14px 0 43px",
+    fontSize: "13px",
+    color: "#1e293b",
+    background: "#ffffff",
+  },
+
+  select: {
+    width: "100%",
+    height: "43px",
+    boxSizing: "border-box",
+    border: "1px solid #dbe2ea",
+    borderRadius: "8px",
+    outline: "none",
+    padding: "0 13px",
+    fontSize: "13px",
+    color: "#1e293b",
+    background: "#ffffff",
+    cursor: "pointer",
+  },
+
+  eyeButton: {
+    position: "absolute",
+    right: "11px",
+    border: "none",
+    background: "transparent",
+    color: "#2563eb",
+    cursor: "pointer",
+    fontSize: "11px",
+    fontWeight: 600,
+    padding: "5px",
+  },
+
+  hint: {
+    margin: "5px 0 0",
+    color: "#94a3b8",
+    fontSize: "10px",
+  },
+
+  errorBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 12px",
+    marginBottom: "17px",
+    borderRadius: "8px",
+    background: "#fef2f2",
+    border: "1px solid #fecaca",
+    color: "#b91c1c",
+    fontSize: "12px",
+  },
+
+  errorIcon: {
+    width: "19px",
+    height: "19px",
+    borderRadius: "50%",
+    background: "#dc2626",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    fontSize: "11px",
+    flexShrink: 0,
+  },
+
+  successBox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "10px 12px",
+    marginBottom: "17px",
+    borderRadius: "8px",
+    background: "#f0fdf4",
+    border: "1px solid #bbf7d0",
+    color: "#15803d",
+    fontSize: "12px",
+  },
+
+  successIcon: {
+    width: "19px",
+    height: "19px",
+    borderRadius: "50%",
+    background: "#16a34a",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 700,
+    fontSize: "11px",
+    flexShrink: 0,
+  },
+
+  registerButton: {
+    width: "100%",
+    height: "46px",
+    border: "none",
+    borderRadius: "8px",
+    background: "#2563eb",
+    color: "#ffffff",
+    fontSize: "13px",
+    fontWeight: 600,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "9px",
+    marginTop: "5px",
+  },
+
+  arrow: {
+    fontSize: "17px",
+  },
+
+  loginText: {
+    textAlign: "center",
+    marginTop: "20px",
+    color: "#64748b",
+    fontSize: "12px",
+  },
+
+  loginLink: {
+    color: "#2563eb",
+    fontWeight: 600,
+    textDecoration: "none",
+  },
+
+  bottomText: {
+    textAlign: "center",
+    marginTop: "25px",
+    paddingTop: "15px",
+    borderTop: "1px solid #eef2f7",
+    color: "#94a3b8",
+    fontSize: "10px",
+  },
+};
+
+export default Register;

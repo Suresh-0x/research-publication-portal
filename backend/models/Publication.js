@@ -7,42 +7,82 @@ const publicationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
     paperTitle: {
       type: String,
       required: true,
       trim: true,
     },
+
     publicationType: {
       type: String,
-      enum: ["Journal", "Conference", "Book Chapter", "Patent"],
+      enum: [
+        "Journal",
+        "Conference",
+        "Book Chapter",
+        "Patent",
+      ],
       required: true,
     },
+
     journalConference: {
       type: String,
       required: true,
+      trim: true,
     },
+
     publicationYear: {
       type: Number,
       required: true,
     },
+
     DOI: {
       type: String,
       trim: true,
+      default: "",
     },
+
     verificationStatus: {
       type: String,
-      enum: ["pending", "verified", "rejected"],
-      default: "pending",
+      enum: [
+        "PENDING",
+        "VERIFIED",
+        "REJECTED",
+      ],
+      default: "PENDING",
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-// Performance indexes for fast querying, filtering, and tab sorting
-publicationSchema.index({ facultyId: 1 });
-publicationSchema.index({ verificationStatus: 1 });
-publicationSchema.index({ createdAt: -1 });
-publicationSchema.index({ facultyId: 1, verificationStatus: 1 });
-publicationSchema.index({ publicationYear: -1 });
+/* =========================================================
+   INDEXES
+========================================================= */
 
-module.exports = mongoose.model("Publication", publicationSchema);
+publicationSchema.index({
+  facultyId: 1,
+});
+
+publicationSchema.index({
+  verificationStatus: 1,
+});
+
+publicationSchema.index({
+  createdAt: -1,
+});
+
+publicationSchema.index({
+  facultyId: 1,
+  verificationStatus: 1,
+});
+
+publicationSchema.index({
+  publicationYear: -1,
+});
+
+module.exports = mongoose.model(
+  "Publication",
+  publicationSchema
+);

@@ -3,10 +3,21 @@ import { createContext, useContext, useState } from "react";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  // Load any existing session from localStorage so a page refresh doesn't log the user out
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem("user");
+
+      if (!savedUser) {
+        return null;
+      }
+
+      return JSON.parse(savedUser);
+    } catch (error) {
+      console.error("Invalid saved user data:", error);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      return null;
+    }
   });
 
   const login = (userData, token) => {
@@ -28,7 +39,12 @@ export function AuthProvider({ children }) {
   );
 }
 
-// Custom hook so pages can just call useAuth() instead of importing useContext + AuthContext every time
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+
+  if (!context) {
+    throw new Error("useAuth must be used inside an AuthProvider");
+  }
+
+  return context;
 }
