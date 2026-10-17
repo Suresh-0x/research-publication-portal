@@ -682,9 +682,6 @@ export default function ManagePublications() {
               const isRejected =
                 status === "REJECTED";
 
-              const isPending =
-                status === "PENDING";
-
               const accentColor = isVerified
                 ? "#10b981"
                 : isRejected
