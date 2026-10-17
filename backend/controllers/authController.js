@@ -4,6 +4,10 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Department = require("../models/Department");
 
+/* =========================================================
+   NORMALIZE EMAIL
+========================================================= */
+
 const normalizeEmail = (email) => {
   return email.trim().toLowerCase();
 };
@@ -24,18 +28,21 @@ const registerUser = async (req, res) => {
       department,
     } = req.body;
 
+    // Required fields
     if (!name || !email || !password || !role) {
       return res.status(400).json({
         message: "Please fill all required fields.",
       });
     }
 
+    // Validate role
     if (!["faculty", "admin"].includes(role)) {
       return res.status(400).json({
         message: "Invalid role.",
       });
     }
 
+    // Validate password
     if (password.length < 6) {
       return res.status(400).json({
         message: "Password must be at least 6 characters long.",
@@ -44,6 +51,7 @@ const registerUser = async (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
 
+    // Check email
     const existingUser = await User.findOne({
       email: normalizedEmail,
     });
@@ -56,21 +64,24 @@ const registerUser = async (req, res) => {
 
     let departmentDocument = null;
 
-    /* ================= FACULTY ================= */
+    /* =====================================================
+       FACULTY REGISTRATION
+    ===================================================== */
 
     if (role === "faculty") {
-      if (!facultyId) {
+      if (!facultyId || !facultyId.trim()) {
         return res.status(400).json({
           message: "Faculty ID is required.",
         });
       }
 
-      if (!department) {
+      if (!department || !department.trim()) {
         return res.status(400).json({
           message: "Department is required.",
         });
       }
 
+      // Check faculty ID
       const existingFaculty = await User.findOne({
         facultyId: facultyId.trim(),
       });
@@ -81,6 +92,7 @@ const registerUser = async (req, res) => {
         });
       }
 
+      // Find department
       departmentDocument = await Department.findOne({
         departmentName: department.trim(),
       });
@@ -92,15 +104,18 @@ const registerUser = async (req, res) => {
       }
     }
 
-    /* ================= ADMIN ================= */
+    /* =====================================================
+       ADMIN REGISTRATION
+    ===================================================== */
 
     if (role === "admin") {
-      if (!adminId) {
+      if (!adminId || !adminId.trim()) {
         return res.status(400).json({
           message: "Admin ID is required.",
         });
       }
 
+      // Check admin ID
       const existingAdmin = await User.findOne({
         adminId: adminId.trim(),
       });
@@ -112,9 +127,15 @@ const registerUser = async (req, res) => {
       }
     }
 
-    /* ================= PASSWORD ================= */
+    /* =====================================================
+       HASH PASSWORD
+    ===================================================== */
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    /* =====================================================
+       CREATE USER DATA
+    ===================================================== */
 
     const userData = {
       name: name.trim(),
@@ -123,25 +144,35 @@ const registerUser = async (req, res) => {
       role,
     };
 
+    // Faculty fields
     if (role === "faculty") {
       userData.facultyId = facultyId.trim();
       userData.department = departmentDocument._id;
     }
 
+    // Admin fields
     if (role === "admin") {
       userData.adminId = adminId.trim();
     }
 
-    /* ================= CREATE USER ================= */
+    /* =====================================================
+       CREATE USER
+    ===================================================== */
 
     const newUser = await User.create(userData);
 
-    /* ================= UPDATE FACULTY COUNT ================= */
+    /* =====================================================
+       UPDATE DEPARTMENT FACULTY COUNT
+    ===================================================== */
 
     if (role === "faculty" && departmentDocument) {
       departmentDocument.totalFaculty += 1;
       await departmentDocument.save();
     }
+
+    /* =====================================================
+       RESPONSE
+    ===================================================== */
 
     return res.status(201).json({
       message: "Registration successful! You can now login.",
@@ -161,7 +192,8 @@ const registerUser = async (req, res) => {
 
     if (error.code === 11000) {
       return res.status(400).json({
-        message: "Email, Faculty ID, or Admin ID already exists.",
+        message:
+          "Email, Faculty ID, or Admin ID already exists.",
       });
     }
 
@@ -177,11 +209,9 @@ const registerUser = async (req, res) => {
 
 const loginUser = async (req, res) => {
   try {
-    const {
-      email,
-      password,
-    } = req.body;
+    const { email, password } = req.body;
 
+    // Validation
     if (!email || !password) {
       return res.status(400).json({
         message: "Please provide email and password.",
@@ -190,12 +220,10 @@ const loginUser = async (req, res) => {
 
     const normalizedEmail = normalizeEmail(email);
 
+    // Find user
     const user = await User.findOne({
       email: normalizedEmail,
-    }).populate(
-      "department",
-      "departmentName"
-    );
+    }).populate("department", "departmentName");
 
     if (!user) {
       return res.status(401).json({
@@ -203,6 +231,7 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Check password
     const isMatch = await bcrypt.compare(
       password,
       user.password
@@ -214,6 +243,10 @@ const loginUser = async (req, res) => {
       });
     }
 
+    /* =====================================================
+       CREATE JWT
+    ===================================================== */
+
     const token = jwt.sign(
       {
         id: user._id,
@@ -224,6 +257,10 @@ const loginUser = async (req, res) => {
         expiresIn: "7d",
       }
     );
+
+    /* =====================================================
+       RESPONSE
+    ===================================================== */
 
     return res.status(200).json({
       message: "Login successful.",
@@ -249,48 +286,8 @@ const loginUser = async (req, res) => {
 };
 
 /* =========================================================
-   FORGOT PASSWORD
-   DIRECT RESET PAGE FLOW
-========================================================= */
-
-const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({
-        message: "Please provide your registered email.",
-      });
-    }
-
-    const normalizedEmail = normalizeEmail(email);
-
-    const user = await User.findOne({
-      email: normalizedEmail,
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        message: "No account found with this email.",
-      });
-    }
-
-    return res.status(200).json({
-      message: "Email verified. You can reset your password.",
-      email: user.email,
-    });
-  } catch (error) {
-    console.error("Forgot password error:", error);
-
-    return res.status(500).json({
-      message: "Unable to verify email.",
-    });
-  }
-};
-
-/* =========================================================
    RESET PASSWORD
-   EMAIL + NEW PASSWORD
+   DIRECT EMAIL + NEW PASSWORD FLOW
 ========================================================= */
 
 const resetPassword = async (req, res) => {
@@ -301,7 +298,9 @@ const resetPassword = async (req, res) => {
       confirmPassword,
     } = req.body;
 
-    /* ================= VALIDATION ================= */
+    /* =====================================================
+       VALIDATION
+    ===================================================== */
 
     if (!email || !newPassword || !confirmPassword) {
       return res.status(400).json({
@@ -323,9 +322,15 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    /* =====================================================
+       NORMALIZE EMAIL
+    ===================================================== */
+
     const normalizedEmail = normalizeEmail(email);
 
-    /* ================= FIND USER ================= */
+    /* =====================================================
+       FIND USER
+    ===================================================== */
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -337,7 +342,9 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    /* ================= HASH NEW PASSWORD ================= */
+    /* =====================================================
+       HASH NEW PASSWORD
+    ===================================================== */
 
     const hashedPassword = await bcrypt.hash(
       newPassword,
@@ -348,7 +355,9 @@ const resetPassword = async (req, res) => {
 
     await user.save();
 
-    /* ================= SUCCESS ================= */
+    /* =====================================================
+       SUCCESS
+    ===================================================== */
 
     return res.status(200).json({
       message:
@@ -370,6 +379,5 @@ const resetPassword = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
-  forgotPassword,
   resetPassword,
 };
