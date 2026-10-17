@@ -120,10 +120,10 @@ const Register = () => {
         data.adminId = formData.adminId.trim();
       }
 
-      const response = await axios.post(
-        "http://localhost:5000/register",
-        data
-      );
+     const response = await api.post(
+  "/register",
+  data
+);
 
       setMessage(
         response.data.message ||
