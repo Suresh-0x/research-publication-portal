@@ -17,8 +17,7 @@ const Register = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -113,6 +112,9 @@ const Register = () => {
 
       if (formData.role === "faculty") {
         data.facultyId = formData.facultyId.trim();
+
+        // IMPORTANT:
+        // Send the complete department name to backend.
         data.department = formData.department;
       }
 
@@ -120,10 +122,7 @@ const Register = () => {
         data.adminId = formData.adminId.trim();
       }
 
-     const response = await api.post(
-  "/register",
-  data
-);
+      const response = await api.post("/register", data);
 
       setMessage(
         response.data.message ||
@@ -382,27 +381,31 @@ const Register = () => {
                       Select your department
                     </option>
 
-                    <option value="CSE">
+                    {/* IMPORTANT:
+                        value MUST match MongoDB departmentName
+                    */}
+
+                    <option value="Computer Science & Engineering">
                       Computer Science & Engineering
                     </option>
 
-                    <option value="ECE">
+                    <option value="Electronics & Communication Engineering">
                       Electronics & Communication Engineering
                     </option>
 
-                    <option value="EEE">
+                    <option value="Electrical & Electronics Engineering">
                       Electrical & Electronics Engineering
                     </option>
 
-                    <option value="MECH">
+                    <option value="Mechanical Engineering">
                       Mechanical Engineering
                     </option>
 
-                    <option value="CIVIL">
+                    <option value="Civil Engineering">
                       Civil Engineering
                     </option>
 
-                    <option value="IT">
+                    <option value="Information Technology">
                       Information Technology
                     </option>
                   </select>
@@ -665,7 +668,6 @@ const Register = () => {
     </div>
   );
 };
-
 
 /* =================================
    STYLES
