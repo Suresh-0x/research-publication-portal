@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "https://research-publication-backend.onrender.com"
-    : "http://localhost:5000");
+import api from "../api/axios";
 
 function MailIcon() {
   return (
@@ -97,6 +91,7 @@ export default function ResetPassword() {
 
     const cleanEmail = email.trim().toLowerCase();
 
+    // Validation
     if (!cleanEmail || !newPassword || !confirmPassword) {
       setError("Please fill all fields.");
       return;
@@ -115,13 +110,12 @@ export default function ResetPassword() {
     try {
       setLoading(true);
 
-      const response = await axios.put(
-        `${API_BASE_URL}/reset-password`,
-        {
-          email: cleanEmail,
-          newPassword,
-        }
-      );
+      // Correct API request
+      const response = await api.post("/reset-password", {
+        email: cleanEmail,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      });
 
       setSuccess(
         response.data?.message ||
@@ -132,10 +126,13 @@ export default function ResetPassword() {
       setNewPassword("");
       setConfirmPassword("");
 
+      // Go back to login
       setTimeout(() => {
         navigate("/login");
       }, 1800);
     } catch (err) {
+      console.error("Reset password error:", err);
+
       setError(
         err.response?.data?.message ||
           "Unable to reset password. Please try again."
@@ -234,9 +231,7 @@ export default function ResetPassword() {
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Re-enter your password"
               value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(e.target.value)
-              }
+              onChange={(e) => setConfirmPassword(e.target.value)}
               style={styles.passwordInput}
               autoComplete="new-password"
               disabled={loading}
@@ -267,9 +262,7 @@ export default function ResetPassword() {
               opacity: loading ? 0.7 : 1,
             }}
           >
-            {loading
-              ? "Updating Password..."
-              : "Update Password →"}
+            {loading ? "Updating Password..." : "Update Password →"}
           </button>
         </form>
 
