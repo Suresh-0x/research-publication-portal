@@ -1,37 +1,57 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
 export default function ForgotPassword() {
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
-  const [resetLink, setResetLink] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    setLoading(true);
     setError("");
-    setMessage("");
-    setResetLink("");
+
+    if (!email.trim()) {
+      setError("Please enter your registered email address.");
+      return;
+    }
 
     try {
-      const res = await api.post("/forgot-password", { email });
+      setLoading(true);
 
-      setMessage(
-        res.data.message ||
-          "Password reset link sent to your email!"
-      );
+      const res = await api.post("/forgot-password", {
+        email: email.trim(),
+      });
 
-      if (res.data.resetLink) {
-        setResetLink(res.data.resetLink);
+      const resetLink = res.data.resetLink;
+
+      if (!resetLink) {
+        setError("Unable to generate reset link.");
+        return;
       }
+
+      // Get token from backend-generated reset link
+      const url = new URL(resetLink);
+      const token = url.searchParams.get("token");
+
+      if (!token) {
+        setError("Invalid reset token.");
+        return;
+      }
+
+      // Directly open Reset Password page
+      navigate(
+        `/reset-password?token=${encodeURIComponent(token)}`
+      );
     } catch (err) {
+      console.error("Forgot password error:", err);
+
       setError(
         err.response?.data?.message ||
-          "Unable to process request. Please check the email."
+          "Unable to process request. Please check your email."
       );
     } finally {
       setLoading(false);
@@ -41,6 +61,7 @@ export default function ForgotPassword() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
+
         {/* Brand Icon */}
         <div style={styles.iconWrapper}>
           <div style={styles.iconBox}>
@@ -67,53 +88,10 @@ export default function ForgotPassword() {
           </h2>
 
           <p style={styles.subtitle}>
-            Enter your registered email and we'll send you
-            instructions to reset your password.
+            Enter your registered email to continue
+            to reset your password.
           </p>
         </div>
-
-        {/* Success Message */}
-        {message && (
-          <div style={styles.successAlert}>
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
-            </svg>
-
-            <span>{message}</span>
-          </div>
-        )}
-
-        {/* Reset Link */}
-        {resetLink && (
-          <div style={styles.resetLinkBox}>
-            <div style={styles.resetLinkTitle}>
-              Reset link generated
-            </div>
-
-            <p style={styles.resetLinkText}>
-              Email delivery is unavailable. You can use the
-              generated reset link below.
-            </p>
-
-            <a
-              href={resetLink}
-              style={styles.resetButton}
-            >
-              Click Here to Reset Password
-              <span style={styles.arrow}>→</span>
-            </a>
-          </div>
-        )}
 
         {/* Error */}
         {error && (
@@ -149,6 +127,7 @@ export default function ForgotPassword() {
 
         {/* Form */}
         <form onSubmit={handleSubmit}>
+
           {/* Email */}
           <div style={styles.fieldGroup}>
             <label
@@ -177,6 +156,7 @@ export default function ForgotPassword() {
                   y="4"
                   rx="2"
                 />
+
                 <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
               </svg>
 
@@ -190,6 +170,7 @@ export default function ForgotPassword() {
                   setEmail(e.target.value)
                 }
                 required
+                disabled={loading}
                 style={styles.input}
               />
             </div>
@@ -208,8 +189,8 @@ export default function ForgotPassword() {
             }}
           >
             {loading
-              ? "Sending Link..."
-              : "Send Reset Link"}
+              ? "Opening Reset Password..."
+              : "Continue"}
 
             {!loading && (
               <span style={styles.arrow}>
@@ -224,6 +205,7 @@ export default function ForgotPassword() {
           <span style={styles.rememberText}>
             Remember your password?
           </span>{" "}
+
           <Link
             to="/login"
             style={styles.loginLink}
@@ -236,6 +218,7 @@ export default function ForgotPassword() {
         <div style={styles.footer}>
           Research Publication Management Portal
         </div>
+
       </div>
     </div>
   );
@@ -371,20 +354,6 @@ const styles = {
     lineHeight: 1,
   },
 
-  successAlert: {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "9px",
-    background: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    color: "#166534",
-    borderRadius: "9px",
-    padding: "11px 12px",
-    marginBottom: "18px",
-    fontSize: "12px",
-    lineHeight: 1.5,
-  },
-
   errorAlert: {
     display: "flex",
     alignItems: "flex-start",
@@ -397,44 +366,6 @@ const styles = {
     marginBottom: "18px",
     fontSize: "12px",
     lineHeight: 1.5,
-  },
-
-  resetLinkBox: {
-    background: "#f8fafc",
-    border: "1px solid #e2e8f0",
-    borderRadius: "10px",
-    padding: "14px",
-    marginBottom: "18px",
-  },
-
-  resetLinkTitle: {
-    fontSize: "13px",
-    fontWeight: 700,
-    color: "#1e293b",
-    marginBottom: "5px",
-  },
-
-  resetLinkText: {
-    margin: "0 0 12px",
-    fontSize: "11px",
-    lineHeight: 1.5,
-    color: "#64748b",
-  },
-
-  resetButton: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "9px",
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "11px 15px",
-    background: "#1e3a8a",
-    color: "#ffffff",
-    borderRadius: "8px",
-    textDecoration: "none",
-    fontWeight: 650,
-    fontSize: "12px",
   },
 
   backContainer: {

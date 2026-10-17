@@ -7,20 +7,24 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 
 const Register = lazy(() => import("./pages/Register"));
-const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 const FacultyDashboard = lazy(() => import("./pages/FacultyDashboard"));
 const AddPublication = lazy(() => import("./pages/AddPublication"));
 const MyPublications = lazy(() => import("./pages/MyPublications"));
+
 const SearchPublications = lazy(() =>
   import("./pages/SearchPublications")
 );
 
-const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminDashboard = lazy(() =>
+  import("./pages/AdminDashboard")
+);
+
 const ManagePublications = lazy(() =>
   import("./pages/ManagePublications")
 );
+
 const ManageDepartments = lazy(() =>
   import("./pages/ManageDepartments")
 );
@@ -71,20 +75,36 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <Routes>
 
-            {/* Public Pages */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            {/* =========================
+                PUBLIC PAGES
+            ========================= */}
+
             <Route
-              path="/forgot-password"
-              element={<ForgotPassword />}
+              path="/"
+              element={<Home />}
             />
+
+            <Route
+              path="/login"
+              element={<Login />}
+            />
+
+            <Route
+              path="/register"
+              element={<Register />}
+            />
+
+            {/* Direct Reset Password Page */}
             <Route
               path="/reset-password"
               element={<ResetPassword />}
             />
 
-            {/* Faculty Pages */}
+
+            {/* =========================
+                FACULTY PAGES
+            ========================= */}
+
             <Route
               path="/faculty-dashboard"
               element={
@@ -121,7 +141,11 @@ function App() {
               }
             />
 
-            {/* Admin Pages */}
+
+            {/* =========================
+                ADMIN PAGES
+            ========================= */}
+
             <Route
               path="/admin-dashboard"
               element={
@@ -149,8 +173,15 @@ function App() {
               }
             />
 
-            {/* Fallback */}
-            <Route path="*" element={<Home />} />
+
+            {/* =========================
+                FALLBACK
+            ========================= */}
+
+            <Route
+              path="*"
+              element={<Home />}
+            />
 
           </Routes>
         </Suspense>

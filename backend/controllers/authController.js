@@ -1,20 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const nodemailer = require("nodemailer");
 
 const User = require("../models/User");
 const Department = require("../models/Department");
-
-const FRONTEND_URL =
-  process.env.FRONTEND_URL || "http://localhost:5173";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
 
 const normalizeEmail = (email) => {
   return email.trim().toLowerCase();
@@ -50,8 +38,7 @@ const registerUser = async (req, res) => {
 
     if (password.length < 6) {
       return res.status(400).json({
-        message:
-          "Password must be at least 6 characters long.",
+        message: "Password must be at least 6 characters long.",
       });
     }
 
@@ -63,8 +50,7 @@ const registerUser = async (req, res) => {
 
     if (existingUser) {
       return res.status(400).json({
-        message:
-          "User already exists with this email.",
+        message: "User already exists with this email.",
       });
     }
 
@@ -95,15 +81,13 @@ const registerUser = async (req, res) => {
         });
       }
 
-      departmentDocument =
-        await Department.findOne({
-          departmentName: department.trim(),
-        });
+      departmentDocument = await Department.findOne({
+        departmentName: department.trim(),
+      });
 
       if (!departmentDocument) {
         return res.status(400).json({
-          message:
-            `Department "${department}" not found.`,
+          message: `Department "${department}" not found.`,
         });
       }
     }
@@ -130,10 +114,7 @@ const registerUser = async (req, res) => {
 
     /* ================= PASSWORD ================= */
 
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const userData = {
       name: name.trim(),
@@ -143,67 +124,49 @@ const registerUser = async (req, res) => {
     };
 
     if (role === "faculty") {
-      userData.facultyId =
-        facultyId.trim();
-
-      userData.department =
-        departmentDocument._id;
+      userData.facultyId = facultyId.trim();
+      userData.department = departmentDocument._id;
     }
 
     if (role === "admin") {
-      userData.adminId =
-        adminId.trim();
+      userData.adminId = adminId.trim();
     }
 
     /* ================= CREATE USER ================= */
 
-    const newUser =
-      await User.create(userData);
+    const newUser = await User.create(userData);
 
     /* ================= UPDATE FACULTY COUNT ================= */
 
-    if (
-      role === "faculty" &&
-      departmentDocument
-    ) {
+    if (role === "faculty" && departmentDocument) {
       departmentDocument.totalFaculty += 1;
-
       await departmentDocument.save();
     }
 
     return res.status(201).json({
-      message:
-        "Registration successful! You can now login.",
+      message: "Registration successful! You can now login.",
 
       user: {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-        facultyId:
-          newUser.facultyId || null,
-        adminId:
-          newUser.adminId || null,
-        department:
-          newUser.department || null,
+        facultyId: newUser.facultyId || null,
+        adminId: newUser.adminId || null,
+        department: newUser.department || null,
       },
     });
   } catch (error) {
-    console.error(
-      "Registration error:",
-      error
-    );
+    console.error("Registration error:", error);
 
     if (error.code === 11000) {
       return res.status(400).json({
-        message:
-          "Email, Faculty ID, or Admin ID already exists.",
+        message: "Email, Faculty ID, or Admin ID already exists.",
       });
     }
 
     return res.status(500).json({
-      message:
-        "Server error during registration.",
+      message: "Server error during registration.",
     });
   }
 };
@@ -221,13 +184,11 @@ const loginUser = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({
-        message:
-          "Please provide email and password.",
+        message: "Please provide email and password.",
       });
     }
 
-    const normalizedEmail =
-      normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -238,21 +199,18 @@ const loginUser = async (req, res) => {
 
     if (!user) {
       return res.status(401).json({
-        message:
-          "Invalid email or password.",
+        message: "Invalid email or password.",
       });
     }
 
-    const isMatch =
-      await bcrypt.compare(
-        password,
-        user.password
-      );
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
 
     if (!isMatch) {
       return res.status(401).json({
-        message:
-          "Invalid email or password.",
+        message: "Invalid email or password.",
       });
     }
 
@@ -276,29 +234,23 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        facultyId:
-          user.facultyId || null,
-        adminId:
-          user.adminId || null,
-        department:
-          user.department || null,
+        facultyId: user.facultyId || null,
+        adminId: user.adminId || null,
+        department: user.department || null,
       },
     });
   } catch (error) {
-    console.error(
-      "Login error:",
-      error
-    );
+    console.error("Login error:", error);
 
     return res.status(500).json({
-      message:
-        "Server error during login.",
+      message: "Server error during login.",
     });
   }
 };
 
 /* =========================================================
    FORGOT PASSWORD
+   DIRECT RESET PAGE FLOW
 ========================================================= */
 
 const forgotPassword = async (req, res) => {
@@ -307,13 +259,11 @@ const forgotPassword = async (req, res) => {
 
     if (!email) {
       return res.status(400).json({
-        message:
-          "Please provide an email address.",
+        message: "Please provide your registered email.",
       });
     }
 
-    const normalizedEmail =
-      normalizeEmail(email);
+    const normalizedEmail = normalizeEmail(email);
 
     const user = await User.findOne({
       email: normalizedEmail,
@@ -321,124 +271,42 @@ const forgotPassword = async (req, res) => {
 
     if (!user) {
       return res.status(404).json({
-        message:
-          "No account found with this email.",
+        message: "No account found with this email.",
       });
     }
 
-    const resetToken = jwt.sign(
-      {
-        id: user._id,
-        purpose: "password-reset",
-      },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: "15m",
-      }
-    );
-
-    const resetLink =
-      `${FRONTEND_URL}/reset-password?token=${encodeURIComponent(
-        resetToken
-      )}`;
-
-    await transporter.sendMail({
-      from:
-        `"Research Publication Portal" <${process.env.EMAIL_USER}>`,
-
-      to: user.email,
-
-      subject:
-        "Password Reset - Research Publication Portal",
-
-      html: `
-        <div style="
-          font-family: Arial, sans-serif;
-          max-width: 500px;
-          margin: auto;
-          padding: 30px;
-          color: #1e293b;
-        ">
-          <h2 style="color: #1e3a8a;">
-            Password Reset
-          </h2>
-
-          <p>
-            Hello <b>${user.name}</b>,
-          </p>
-
-          <p>
-            We received a request to reset your
-            Research Publication Portal password.
-          </p>
-
-          <p style="margin: 25px 0;">
-            <a
-              href="${resetLink}"
-              style="
-                display: inline-block;
-                background: #1e3a8a;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 8px;
-                text-decoration: none;
-                font-weight: bold;
-              "
-            >
-              Reset Password
-            </a>
-          </p>
-
-          <p style="
-            font-size: 13px;
-            color: #64748b;
-          ">
-            This link will expire in 15 minutes.
-          </p>
-
-          <p style="
-            font-size: 13px;
-            color: #64748b;
-          ">
-            If you did not request this password reset,
-            you can safely ignore this email.
-          </p>
-        </div>
-      `,
-    });
-
     return res.status(200).json({
-      message:
-        "Password reset link sent to your email!",
+      message: "Email verified. You can reset your password.",
+      email: user.email,
     });
   } catch (error) {
-    console.error(
-      "Forgot password error:",
-      error
-    );
+    console.error("Forgot password error:", error);
 
     return res.status(500).json({
-      message:
-        "Failed to send password reset email.",
+      message: "Unable to verify email.",
     });
   }
 };
 
 /* =========================================================
    RESET PASSWORD
+   EMAIL + NEW PASSWORD
 ========================================================= */
 
 const resetPassword = async (req, res) => {
   try {
     const {
-      token,
+      email,
       newPassword,
+      confirmPassword,
     } = req.body;
 
-    if (!token || !newPassword) {
+    /* ================= VALIDATION ================= */
+
+    if (!email || !newPassword || !confirmPassword) {
       return res.status(400).json({
         message:
-          "Token and new password are required.",
+          "Email, new password and confirm password are required.",
       });
     }
 
@@ -449,51 +317,48 @@ const resetPassword = async (req, res) => {
       });
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    if (
-      decoded.purpose !==
-      "password-reset"
-    ) {
+    if (newPassword !== confirmPassword) {
       return res.status(400).json({
-        message:
-          "Invalid password reset token.",
+        message: "Passwords do not match.",
       });
     }
 
-    const user =
-      await User.findById(decoded.id);
+    const normalizedEmail = normalizeEmail(email);
+
+    /* ================= FIND USER ================= */
+
+    const user = await User.findOne({
+      email: normalizedEmail,
+    });
 
     if (!user) {
       return res.status(404).json({
-        message: "User not found.",
+        message: "No account found with this email.",
       });
     }
 
-    user.password =
-      await bcrypt.hash(
-        newPassword,
-        10
-      );
+    /* ================= HASH NEW PASSWORD ================= */
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10
+    );
+
+    user.password = hashedPassword;
 
     await user.save();
 
+    /* ================= SUCCESS ================= */
+
     return res.status(200).json({
       message:
-        "Your password has been updated successfully!",
+        "Password updated successfully. You can now login.",
     });
   } catch (error) {
-    console.error(
-      "Reset password error:",
-      error
-    );
+    console.error("Reset password error:", error);
 
-    return res.status(400).json({
-      message:
-        "Reset link has expired or is invalid.",
+    return res.status(500).json({
+      message: "Server error while resetting password.",
     });
   }
 };

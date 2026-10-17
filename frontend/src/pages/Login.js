@@ -152,7 +152,10 @@ export default function Login() {
 
             {/* EMAIL */}
             <div style={styles.inputGroup}>
-              <label htmlFor="email" style={styles.label}>
+              <label
+                htmlFor="email"
+                style={styles.label}
+              >
                 Email Address
               </label>
 
@@ -194,12 +197,16 @@ export default function Login() {
             {/* PASSWORD */}
             <div style={styles.inputGroup}>
               <div style={styles.passwordHeader}>
-                <label htmlFor="password" style={styles.label}>
+                <label
+                  htmlFor="password"
+                  style={styles.label}
+                >
                   Password
                 </label>
 
+                {/* DIRECT RESET PASSWORD */}
                 <Link
-                  to="/forgot-password"
+                  to="/reset-password"
                   style={styles.forgotLink}
                 >
                   Forgot password?
@@ -230,7 +237,11 @@ export default function Login() {
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? "text" : "password"}
+                  type={
+                    showPassword
+                      ? "text"
+                      : "password"
+                  }
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
@@ -245,7 +256,9 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() =>
-                    setShowPassword((prev) => !prev)
+                    setShowPassword(
+                      (prev) => !prev
+                    )
                   }
                   style={styles.eyeButton}
                   aria-label={
@@ -278,7 +291,11 @@ export default function Login() {
                       strokeWidth="1.8"
                     >
                       <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                      <circle cx="12" cy="12" r="3" />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="3"
+                      />
                     </svg>
                   )}
                 </button>
@@ -295,7 +312,9 @@ export default function Login() {
                 style={styles.checkbox}
               />
 
-              <span>Remember me for 30 days</span>
+              <span>
+                Remember me for 30 days
+              </span>
             </label>
 
             {/* LOGIN BUTTON */}
@@ -305,6 +324,9 @@ export default function Login() {
               style={{
                 ...styles.loginButton,
                 opacity: loading ? 0.7 : 1,
+                cursor: loading
+                  ? "not-allowed"
+                  : "pointer",
               }}
             >
               {loading ? (
@@ -312,7 +334,9 @@ export default function Login() {
               ) : (
                 <>
                   Sign In
-                  <span style={styles.arrow}>→</span>
+                  <span style={styles.arrow}>
+                    →
+                  </span>
                 </>
               )}
             </button>
@@ -337,7 +361,6 @@ export default function Login() {
     </div>
   );
 }
-
 
 /* =========================
    STYLES
@@ -365,7 +388,8 @@ const styles = {
     overflow: "hidden",
     display: "grid",
     gridTemplateColumns: "42% 58%",
-    boxShadow: "0 20px 60px rgba(15, 23, 42, 0.10)",
+    boxShadow:
+      "0 20px 60px rgba(15, 23, 42, 0.10)",
   },
 
   brandSection: {

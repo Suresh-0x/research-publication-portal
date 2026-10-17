@@ -1,30 +1,104 @@
 import React, { useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+
+const API_BASE_URL =
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://research-publication-backend.onrender.com"
+    : "http://localhost:5000");
+
+function MailIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+function EyeIcon({ off = false }) {
+  return off ? (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 3l18 18" />
+      <path d="M10.58 10.58a2 2 0 0 0 2.83 2.83" />
+      <path d="M9.88 4.24A9.75 9.75 0 0 1 12 4c5 0 8.5 5 8.5 5a15.5 15.5 0 0 1-3.16 3.94" />
+      <path d="M6.71 6.71C4.68 8.07 3.5 10 3.5 10S7 16 12 16a9.7 9.7 0 0 0 3.29-.58" />
+    </svg>
+  ) : (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </svg>
+  );
+}
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token");
   const navigate = useNavigate();
 
+  const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [successMessage, setSuccessMessage] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (e) => {
+  const handleResetPassword = async (e) => {
     e.preventDefault();
 
     setError("");
-    setSuccessMessage("");
+    setSuccess("");
 
-    if (newPassword !== confirmPassword) {
-      setError("Passwords do not match.");
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !newPassword || !confirmPassword) {
+      setError("Please fill all fields.");
       return;
     }
 
@@ -33,26 +107,38 @@ export default function ResetPassword() {
       return;
     }
 
-    setLoading(true);
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
     try {
-      const res = await api.post("/reset-password", {
-        token,
-        newPassword,
-      });
+      setLoading(true);
 
-      setSuccessMessage(
-        res.data.message ||
+      const response = await axios.put(
+        `${API_BASE_URL}/reset-password`,
+        {
+          email: cleanEmail,
+          newPassword,
+        }
+      );
+
+      setSuccess(
+        response.data?.message ||
           "Your password has been updated successfully!"
       );
 
+      setEmail("");
+      setNewPassword("");
+      setConfirmPassword("");
+
       setTimeout(() => {
         navigate("/login");
-      }, 2500);
+      }, 1800);
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          "Reset link is expired or invalid."
+          "Unable to reset password. Please try again."
       );
     } finally {
       setLoading(false);
@@ -62,344 +148,209 @@ export default function ResetPassword() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
+
         {/* Logo */}
-        <div style={styles.logo}>
-          RP
-        </div>
+        <div style={styles.logo}>RP</div>
 
-        {/* Header */}
-        <div style={styles.header}>
-          <h1 style={styles.title}>
-            {successMessage
-              ? "Password Updated"
-              : "Reset Your Password"}
-          </h1>
+        {/* Heading */}
+        <h1 style={styles.title}>Reset Your Password</h1>
 
-          <p style={styles.subtitle}>
-            {successMessage
-              ? "Your password has been successfully changed."
-              : "Create a new password for your account."}
-          </p>
-        </div>
+        <p style={styles.subtitle}>
+          Enter your registered email and create a new
+          <br />
+          password for your account.
+        </p>
 
-        {/* Success State */}
-        {successMessage ? (
-          <div style={styles.successContainer}>
-            <div style={styles.successIcon}>
-              <svg
-                width="26"
-                height="26"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-            </div>
-
-            <div style={styles.successMessage}>
-              {successMessage}
-            </div>
-
-            <p style={styles.redirectText}>
-              Redirecting you to the login page...
-            </p>
+        {/* Error */}
+        {error && (
+          <div style={styles.errorBox}>
+            <AlertIcon />
+            <span>{error}</span>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            {/* Error */}
-            {error && (
-              <div style={styles.errorBox}>
-                <svg
-                  width="17"
-                  height="17"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line
-                    x1="12"
-                    y1="16"
-                    x2="12.01"
-                    y2="16"
-                  />
-                </svg>
+        )}
 
-                <span>{error}</span>
-              </div>
-            )}
+        {/* Success */}
+        {success && (
+          <div style={styles.successBox}>
+            <span>✓</span>
+            <span>{success}</span>
+          </div>
+        )}
 
-            {/* New Password */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>
-                New Password
-              </label>
+        <form onSubmit={handleResetPassword}>
 
-              <div style={styles.inputWrapper}>
-                <input
-                  type={
-                    showNewPassword ? "text" : "password"
-                  }
-                  value={newPassword}
-                  onChange={(e) =>
-                    setNewPassword(e.target.value)
-                  }
-                  placeholder="Enter new password"
-                  minLength={6}
-                  required
-                  style={styles.input}
-                />
+          {/* Email */}
+          <label style={styles.label}>Registered Email</label>
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowNewPassword(
-                      (prev) => !prev
-                    )
-                  }
-                  style={styles.eyeButton}
-                  aria-label={
-                    showNewPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
-                >
-                  {showNewPassword ? (
-                    <EyeOff />
-                  ) : (
-                    <Eye />
-                  )}
-                </button>
-              </div>
+          <div style={styles.inputWrapper}>
+            <span style={styles.leftIcon}>
+              <MailIcon />
+            </span>
 
-              <span style={styles.hint}>
-                Use at least 6 characters.
-              </span>
-            </div>
-
-            {/* Confirm Password */}
-            <div style={styles.fieldGroup}>
-              <label style={styles.label}>
-                Confirm Password
-              </label>
-
-              <div style={styles.inputWrapper}>
-                <input
-                  type={
-                    showConfirmPassword
-                      ? "text"
-                      : "password"
-                  }
-                  value={confirmPassword}
-                  onChange={(e) =>
-                    setConfirmPassword(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Re-enter your password"
-                  minLength={6}
-                  required
-                  style={styles.input}
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowConfirmPassword(
-                      (prev) => !prev
-                    )
-                  }
-                  style={styles.eyeButton}
-                  aria-label={
-                    showConfirmPassword
-                      ? "Hide password"
-                      : "Show password"
-                  }
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff />
-                  ) : (
-                    <Eye />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Submit */}
-            <button
-              type="submit"
+            <input
+              type="email"
+              placeholder="you@college.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={styles.input}
+              autoComplete="email"
               disabled={loading}
-              style={{
-                ...styles.submitButton,
-                opacity: loading ? 0.7 : 1,
-                cursor: loading
-                  ? "not-allowed"
-                  : "pointer",
-              }}
-            >
-              {loading
-                ? "Updating Password..."
-                : "Update Password"}
-
-              {!loading && (
-                <span style={styles.arrow}>
-                  →
-                </span>
-              )}
-            </button>
-          </form>
-        )}
-
-        {/* Back to Login */}
-        {!successMessage && (
-          <div style={styles.backContainer}>
-            <Link
-              to="/login"
-              style={styles.backLink}
-            >
-              ← Back to Login
-            </Link>
+            />
           </div>
-        )}
 
-        {/* Footer */}
-        <div style={styles.footer}>
+          {/* New Password */}
+          <label style={styles.label}>New Password</label>
+
+          <div style={styles.inputWrapper}>
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Enter new password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              style={styles.passwordInput}
+              autoComplete="new-password"
+              disabled={loading}
+            />
+
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              style={styles.eyeButton}
+              aria-label={
+                showPassword ? "Hide password" : "Show password"
+              }
+            >
+              <EyeIcon off={!showPassword} />
+            </button>
+          </div>
+
+          <p style={styles.hint}>Use at least 6 characters.</p>
+
+          {/* Confirm Password */}
+          <label style={styles.label}>Confirm Password</label>
+
+          <div style={styles.inputWrapper}>
+            <input
+              type={showConfirmPassword ? "text" : "password"}
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChange={(e) =>
+                setConfirmPassword(e.target.value)
+              }
+              style={styles.passwordInput}
+              autoComplete="new-password"
+              disabled={loading}
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowConfirmPassword(!showConfirmPassword)
+              }
+              style={styles.eyeButton}
+              aria-label={
+                showConfirmPassword
+                  ? "Hide password"
+                  : "Show password"
+              }
+            >
+              <EyeIcon off={!showConfirmPassword} />
+            </button>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              ...styles.submitButton,
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading
+              ? "Updating Password..."
+              : "Update Password →"}
+          </button>
+        </form>
+
+        {/* Back */}
+        <button
+          type="button"
+          onClick={() => navigate("/login")}
+          style={styles.backButton}
+        >
+          ← Back to Login
+        </button>
+
+        <div style={styles.divider}></div>
+
+        <p style={styles.footer}>
           Research Publication Management Portal
-        </div>
+        </p>
       </div>
     </div>
   );
 }
-
-/* =========================
-   Eye Icon
-========================= */
-
-function Eye() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-/* =========================
-   Eye Off Icon
-========================= */
-
-function EyeOff() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" y1="2" x2="22" y2="22" />
-    </svg>
-  );
-}
-
-/* =========================
-   Styles
-========================= */
 
 const styles = {
   page: {
     minHeight: "100vh",
     background: "#f8fafc",
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
+    alignItems: "center",
     padding: "30px 20px",
-    boxSizing: "border-box",
     fontFamily:
-      "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   },
 
   card: {
     width: "100%",
     maxWidth: "430px",
     background: "#ffffff",
-    border: "1px solid #e2e8f0",
     borderRadius: "18px",
-    padding: "36px 38px 28px",
-    boxSizing: "border-box",
-    boxShadow:
-      "0 15px 40px rgba(15, 23, 42, 0.07)",
+    padding: "38px 40px 28px",
+    boxShadow: "0 12px 35px rgba(15, 23, 42, 0.08)",
+    border: "1px solid #e5e7eb",
   },
 
   logo: {
     width: "48px",
     height: "48px",
+    margin: "0 auto 24px",
     borderRadius: "12px",
-    background: "#1e3a8a",
+    background: "#24439b",
     color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    margin: "0 auto 22px",
-    fontSize: "15px",
-    fontWeight: 800,
-    letterSpacing: "0.5px",
-  },
-
-  header: {
-    textAlign: "center",
-    marginBottom: "28px",
+    fontWeight: "800",
+    fontSize: "17px",
   },
 
   title: {
-    margin: 0,
+    textAlign: "center",
+    margin: "0",
     color: "#0f172a",
-    fontSize: "25px",
-    fontWeight: 750,
-    letterSpacing: "-0.4px",
+    fontSize: "27px",
+    fontWeight: "800",
   },
 
   subtitle: {
-    margin: "9px auto 0",
+    textAlign: "center",
     color: "#64748b",
-    fontSize: "13px",
-    lineHeight: 1.6,
-    maxWidth: "320px",
-  },
-
-  fieldGroup: {
-    marginBottom: "20px",
+    fontSize: "14px",
+    lineHeight: "1.6",
+    margin: "12px 0 28px",
   },
 
   label: {
     display: "block",
-    marginBottom: "7px",
-    color: "#334155",
-    fontSize: "13px",
-    fontWeight: 650,
+    color: "#172033",
+    fontSize: "14px",
+    fontWeight: "700",
+    marginBottom: "8px",
+    marginTop: "18px",
   },
 
   inputWrapper: {
@@ -409,15 +360,38 @@ const styles = {
 
   input: {
     width: "100%",
-    height: "46px",
+    height: "48px",
     boxSizing: "border-box",
     border: "1px solid #cbd5e1",
     borderRadius: "9px",
-    padding: "0 45px 0 13px",
-    fontSize: "13px",
-    color: "#0f172a",
     outline: "none",
+    padding: "0 14px 0 42px",
+    fontSize: "14px",
+    color: "#0f172a",
     background: "#ffffff",
+  },
+
+  passwordInput: {
+    width: "100%",
+    height: "48px",
+    boxSizing: "border-box",
+    border: "1px solid #cbd5e1",
+    borderRadius: "9px",
+    outline: "none",
+    padding: "0 48px 0 14px",
+    fontSize: "14px",
+    color: "#0f172a",
+    background: "#ffffff",
+  },
+
+  leftIcon: {
+    position: "absolute",
+    left: "13px",
+    top: "50%",
+    transform: "translateY(-50%)",
+    color: "#94a3b8",
+    display: "flex",
+    zIndex: 1,
   },
 
   eyeButton: {
@@ -429,106 +403,79 @@ const styles = {
     background: "transparent",
     color: "#94a3b8",
     cursor: "pointer",
-    padding: "5px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    padding: "5px",
   },
 
   hint: {
-    display: "block",
-    marginTop: "6px",
-    fontSize: "11px",
+    margin: "6px 0 0",
     color: "#94a3b8",
+    fontSize: "12px",
   },
 
   errorBox: {
+    background: "#fff1f2",
+    border: "1px solid #fecdd3",
+    color: "#dc2626",
+    borderRadius: "9px",
+    padding: "11px 13px",
+    fontSize: "13px",
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    background: "#fef2f2",
-    border: "1px solid #fecaca",
-    color: "#b91c1c",
-    borderRadius: "8px",
-    padding: "11px 12px",
-    marginBottom: "20px",
-    fontSize: "12px",
-    lineHeight: 1.4,
+    marginBottom: "18px",
+  },
+
+  successBox: {
+    background: "#ecfdf5",
+    border: "1px solid #a7f3d0",
+    color: "#047857",
+    borderRadius: "9px",
+    padding: "11px 13px",
+    fontSize: "13px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    marginBottom: "18px",
   },
 
   submitButton: {
     width: "100%",
-    height: "47px",
+    height: "48px",
+    marginTop: "25px",
     border: "none",
     borderRadius: "9px",
-    background: "#1e3a8a",
+    background: "#24439b",
     color: "#ffffff",
     fontSize: "14px",
-    fontWeight: 700,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: "10px",
-    boxShadow:
-      "0 7px 18px rgba(30, 58, 138, 0.18)",
+    fontWeight: "700",
+    cursor: "pointer",
+    boxShadow: "0 8px 18px rgba(36, 67, 155, 0.18)",
   },
 
-  arrow: {
-    fontSize: "18px",
-  },
-
-  successContainer: {
-    textAlign: "center",
-    padding: "5px 0 10px",
-  },
-
-  successIcon: {
-    width: "54px",
-    height: "54px",
-    borderRadius: "50%",
-    background: "#dcfce7",
-    color: "#15803d",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 auto 16px",
-  },
-
-  successMessage: {
-    background: "#f0fdf4",
-    border: "1px solid #bbf7d0",
-    color: "#166534",
-    borderRadius: "9px",
-    padding: "12px",
+  backButton: {
+    display: "block",
+    margin: "22px auto 0",
+    border: "none",
+    background: "transparent",
+    color: "#1d4ed8",
     fontSize: "13px",
-    fontWeight: 600,
-    lineHeight: 1.5,
+    fontWeight: "700",
+    cursor: "pointer",
   },
 
-  redirectText: {
-    margin: "15px 0 0",
-    color: "#94a3b8",
-    fontSize: "12px",
-  },
-
-  backContainer: {
-    textAlign: "center",
-    marginTop: "22px",
-  },
-
-  backLink: {
-    color: "#1e40af",
-    textDecoration: "none",
-    fontSize: "13px",
-    fontWeight: 650,
+  divider: {
+    height: "1px",
+    background: "#e5e7eb",
+    margin: "26px 0 18px",
   },
 
   footer: {
-    borderTop: "1px solid #f1f5f9",
-    marginTop: "25px",
-    paddingTop: "18px",
     textAlign: "center",
     color: "#94a3b8",
-    fontSize: "10px",
+    fontSize: "11px",
+    margin: 0,
   },
 };
