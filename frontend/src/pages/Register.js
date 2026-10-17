@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 
@@ -17,11 +17,50 @@ const Register = () => {
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Department state
+  const [departments, setDepartments] = useState([]);
+  const [departmentLoading, setDepartmentLoading] =
+    useState(true);
+
+  // =========================================================
+  // FETCH DEPARTMENTS FROM DATABASE
+  // =========================================================
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await api.get("/departments");
+
+        const data = Array.isArray(response.data)
+          ? response.data
+          : response.data?.departments || [];
+
+        setDepartments(data);
+      } catch (error) {
+        console.error(
+          "Failed to load departments:",
+          error
+        );
+
+        setDepartments([]);
+      } finally {
+        setDepartmentLoading(false);
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // =========================================================
+  // HANDLE INPUT CHANGE
+  // =========================================================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,6 +79,10 @@ const Register = () => {
     }
   };
 
+  // =========================================================
+  // HANDLE ROLE CHANGE
+  // =========================================================
+
   const handleRoleChange = (e) => {
     const role = e.target.value;
 
@@ -55,6 +98,10 @@ const Register = () => {
     setMessage("");
   };
 
+  // =========================================================
+  // HANDLE REGISTRATION
+  // =========================================================
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -63,12 +110,17 @@ const Register = () => {
 
     // Password validation
     if (formData.password.length < 6) {
-      setError("Password must contain at least 6 characters.");
+      setError(
+        "Password must contain at least 6 characters."
+      );
       return;
     }
 
     // Confirm password validation
-    if (formData.password !== formData.confirmPassword) {
+    if (
+      formData.password !==
+      formData.confirmPassword
+    ) {
       setError("Passwords do not match.");
       return;
     }
@@ -111,18 +163,24 @@ const Register = () => {
       };
 
       if (formData.role === "faculty") {
-        data.facultyId = formData.facultyId.trim();
+        data.facultyId =
+          formData.facultyId.trim();
 
-        // IMPORTANT:
-        // Send the complete department name to backend.
-        data.department = formData.department;
+        // Send the exact department name
+        // selected from MongoDB
+        data.department =
+          formData.department;
       }
 
       if (formData.role === "admin") {
-        data.adminId = formData.adminId.trim();
+        data.adminId =
+          formData.adminId.trim();
       }
 
-      const response = await api.post("/register", data);
+      const response = await api.post(
+        "/register",
+        data
+      );
 
       setMessage(
         response.data.message ||
@@ -145,7 +203,10 @@ const Register = () => {
         navigate("/login");
       }, 1500);
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error(
+        "Registration error:",
+        err
+      );
 
       setError(
         err?.response?.data?.message ||
@@ -194,18 +255,30 @@ const Register = () => {
 
           <div style={styles.features}>
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>✓</span>
-              <span>Faculty publication management</span>
+              <span style={styles.featureIcon}>
+                ✓
+              </span>
+              <span>
+                Faculty publication management
+              </span>
             </div>
 
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>✓</span>
-              <span>Publication verification tracking</span>
+              <span style={styles.featureIcon}>
+                ✓
+              </span>
+              <span>
+                Publication verification tracking
+              </span>
             </div>
 
             <div style={styles.feature}>
-              <span style={styles.featureIcon}>✓</span>
-              <span>Department-wise research analytics</span>
+              <span style={styles.featureIcon}>
+                ✓
+              </span>
+              <span>
+                Department-wise research analytics
+              </span>
             </div>
           </div>
         </div>
@@ -231,17 +304,23 @@ const Register = () => {
           </div>
 
           {/* SUCCESS MESSAGE */}
+
           {message && (
             <div style={styles.successBox}>
-              <span style={styles.successIcon}>✓</span>
+              <span style={styles.successIcon}>
+                ✓
+              </span>
               <span>{message}</span>
             </div>
           )}
 
           {/* ERROR MESSAGE */}
+
           {error && (
             <div style={styles.errorBox}>
-              <span style={styles.errorIcon}>!</span>
+              <span style={styles.errorIcon}>
+                !
+              </span>
               <span>{error}</span>
             </div>
           )}
@@ -249,6 +328,7 @@ const Register = () => {
           <form onSubmit={handleSubmit}>
 
             {/* NAME */}
+
             <div style={styles.inputGroup}>
               <label
                 htmlFor="name"
@@ -267,7 +347,11 @@ const Register = () => {
                     stroke="currentColor"
                     strokeWidth="1.8"
                   >
-                    <circle cx="12" cy="8" r="4" />
+                    <circle
+                      cx="12"
+                      cy="8"
+                      r="4"
+                    />
                     <path d="M4 21a8 8 0 0 1 16 0" />
                   </svg>
                 </span>
@@ -286,6 +370,7 @@ const Register = () => {
             </div>
 
             {/* ROLE */}
+
             <div style={styles.inputGroup}>
               <label
                 htmlFor="role"
@@ -313,9 +398,11 @@ const Register = () => {
             </div>
 
             {/* FACULTY FIELDS */}
+
             {formData.role === "faculty" && (
               <>
                 {/* FACULTY ID */}
+
                 <div style={styles.inputGroup}>
                   <label
                     htmlFor="facultyId"
@@ -361,6 +448,7 @@ const Register = () => {
                 </div>
 
                 {/* DEPARTMENT */}
+
                 <div style={styles.inputGroup}>
                   <label
                     htmlFor="department"
@@ -375,45 +463,59 @@ const Register = () => {
                     value={formData.department}
                     onChange={handleChange}
                     required
-                    style={styles.select}
+                    disabled={departmentLoading}
+                    style={{
+                      ...styles.select,
+                      opacity:
+                        departmentLoading
+                          ? 0.7
+                          : 1,
+                    }}
                   >
                     <option value="">
-                      Select your department
+                      {departmentLoading
+                        ? "Loading departments..."
+                        : "Select your department"}
                     </option>
 
-                    {/* IMPORTANT:
-                        value MUST match MongoDB departmentName
-                    */}
-
-                    <option value="Computer Science & Engineering">
-                      Computer Science & Engineering
-                    </option>
-
-                    <option value="Electronics & Communication Engineering">
-                      Electronics & Communication Engineering
-                    </option>
-
-                    <option value="Electrical & Electronics Engineering">
-                      Electrical & Electronics Engineering
-                    </option>
-
-                    <option value="Mechanical Engineering">
-                      Mechanical Engineering
-                    </option>
-
-                    <option value="Civil Engineering">
-                      Civil Engineering
-                    </option>
-
-                    <option value="Information Technology">
-                      Information Technology
-                    </option>
+                    {!departmentLoading &&
+                      departments.map(
+                        (dept) => (
+                          <option
+                            key={dept._id}
+                            value={
+                              dept.departmentName
+                            }
+                          >
+                            {
+                              dept.departmentName
+                            }
+                          </option>
+                        )
+                      )}
                   </select>
+
+                  {!departmentLoading &&
+                    departments.length === 0 && (
+                      <p
+                        style={{
+                          margin:
+                            "5px 0 0",
+                          color: "#dc2626",
+                          fontSize: "10px",
+                        }}
+                      >
+                        No departments available.
+                        Please contact the
+                        administrator.
+                      </p>
+                    )}
                 </div>
               </>
             )}
 
             {/* ADMIN ID */}
+
             {formData.role === "admin" && (
               <div style={styles.inputGroup}>
                 <label
@@ -453,6 +555,7 @@ const Register = () => {
             )}
 
             {/* EMAIL */}
+
             <div style={styles.inputGroup}>
               <label
                 htmlFor="email"
@@ -497,6 +600,7 @@ const Register = () => {
             </div>
 
             {/* PASSWORD */}
+
             <div style={styles.inputGroup}>
               <label
                 htmlFor="password"
@@ -554,16 +658,20 @@ const Register = () => {
                   }
                   style={styles.eyeButton}
                 >
-                  {showPassword ? "Hide" : "Show"}
+                  {showPassword
+                    ? "Hide"
+                    : "Show"}
                 </button>
               </div>
 
               <p style={styles.hint}>
-                Password must contain at least 6 characters.
+                Password must contain at least
+                6 characters.
               </p>
             </div>
 
             {/* CONFIRM PASSWORD */}
+
             <div style={styles.inputGroup}>
               <label
                 htmlFor="confirmPassword"
@@ -602,7 +710,9 @@ const Register = () => {
                       : "password"
                   }
                   placeholder="Re-enter your password"
-                  value={formData.confirmPassword}
+                  value={
+                    formData.confirmPassword
+                  }
                   onChange={handleChange}
                   autoComplete="new-password"
                   required
@@ -629,6 +739,7 @@ const Register = () => {
             </div>
 
             {/* SUBMIT */}
+
             <button
               type="submit"
               disabled={loading}
@@ -650,6 +761,7 @@ const Register = () => {
           </form>
 
           {/* LOGIN LINK */}
+
           <div style={styles.loginText}>
             Already have an account?{" "}
             <Link

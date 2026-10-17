@@ -22,12 +22,12 @@ DEPARTMENT ROUTES
 */
 
 // Get all departments
-// Faculty + Admin
-router.get("/", protect, getDepartments);
+// PUBLIC - required during faculty registration
+router.get("/", getDepartments);
 
 // Get single department
-// Faculty + Admin
-router.get("/:id", protect, getDepartmentById);
+// PUBLIC
+router.get("/:id", getDepartmentById);
 
 // Create department
 // Admin only
