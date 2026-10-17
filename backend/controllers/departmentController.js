@@ -13,11 +13,11 @@ const getDepartments = async (req, res) => {
       .sort({ departmentName: 1 })
       .lean();
 
-    res.status(200).json(departments);
+    return res.status(200).json(departments);
   } catch (error) {
     console.error("Get departments error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error while fetching departments.",
     });
@@ -47,14 +47,14 @@ const getDepartmentById = async (req, res) => {
       });
     }
 
-    res.status(200).json(department);
+    return res.status(200).json(department);
   } catch (error) {
     console.error(
       "Get department error:",
       error
     );
 
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error while fetching department.",
     });
@@ -71,6 +71,7 @@ const createDepartment = async (req, res) => {
     const {
       departmentName,
       HODName,
+      totalFaculty,
     } = req.body;
 
     if (!departmentName || !HODName) {
@@ -85,6 +86,22 @@ const createDepartment = async (req, res) => {
 
     const cleanHODName =
       HODName.trim();
+
+    const facultyCount =
+      totalFaculty === undefined ||
+      totalFaculty === ""
+        ? 0
+        : Number(totalFaculty);
+
+    if (
+      Number.isNaN(facultyCount) ||
+      facultyCount < 0
+    ) {
+      return res.status(400).json({
+        message:
+          "Total Faculty must be a valid non-negative number.",
+      });
+    }
 
     const existingDepartment =
       await Department.findOne({
@@ -107,10 +124,11 @@ const createDepartment = async (req, res) => {
         HODName:
           cleanHODName,
 
-        totalFaculty: 0,
+        totalFaculty:
+          facultyCount,
       });
 
-    res.status(201).json({
+    return res.status(201).json({
       message:
         "Department created successfully.",
       department,
@@ -128,7 +146,7 @@ const createDepartment = async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error while creating department.",
     });
@@ -147,13 +165,22 @@ const updateDepartment = async (req, res) => {
     const {
       departmentName,
       HODName,
+      totalFaculty,
     } = req.body;
+
+    /* -----------------------------------------
+       Validate ID
+    ----------------------------------------- */
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         message: "Invalid department ID.",
       });
     }
+
+    /* -----------------------------------------
+       Validate required fields
+    ----------------------------------------- */
 
     if (!departmentName || !HODName) {
       return res.status(400).json({
@@ -162,17 +189,48 @@ const updateDepartment = async (req, res) => {
       });
     }
 
+    /* -----------------------------------------
+       Clean text values
+    ----------------------------------------- */
+
     const cleanDepartmentName =
       departmentName.trim();
 
     const cleanHODName =
       HODName.trim();
 
+    /* -----------------------------------------
+       Convert totalFaculty to number
+    ----------------------------------------- */
+
+    const facultyCount =
+      totalFaculty === undefined ||
+      totalFaculty === ""
+        ? 0
+        : Number(totalFaculty);
+
+    if (
+      Number.isNaN(facultyCount) ||
+      facultyCount < 0
+    ) {
+      return res.status(400).json({
+        message:
+          "Total Faculty must be a valid non-negative number.",
+      });
+    }
+
+    /* -----------------------------------------
+       Check duplicate department name
+    ----------------------------------------- */
+
     const duplicate =
       await Department.findOne({
         departmentName:
           cleanDepartmentName,
-        _id: { $ne: id },
+
+        _id: {
+          $ne: id,
+        },
       });
 
     if (duplicate) {
@@ -182,19 +240,32 @@ const updateDepartment = async (req, res) => {
       });
     }
 
+    /* -----------------------------------------
+       UPDATE DEPARTMENT
+    ----------------------------------------- */
+
     const department =
       await Department.findByIdAndUpdate(
         id,
         {
           departmentName:
             cleanDepartmentName,
-          HODName: cleanHODName,
+
+          HODName:
+            cleanHODName,
+
+          totalFaculty:
+            facultyCount,
         },
         {
           new: true,
           runValidators: true,
         }
       );
+
+    /* -----------------------------------------
+       Department not found
+    ----------------------------------------- */
 
     if (!department) {
       return res.status(404).json({
@@ -203,9 +274,14 @@ const updateDepartment = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    /* -----------------------------------------
+       SUCCESS
+    ----------------------------------------- */
+
+    return res.status(200).json({
       message:
         "Department updated successfully.",
+
       department,
     });
   } catch (error) {
@@ -214,7 +290,7 @@ const updateDepartment = async (req, res) => {
       error
     );
 
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error while updating department.",
     });
@@ -236,7 +312,9 @@ const deleteDepartment = async (req, res) => {
       });
     }
 
-    /* Check whether faculty are assigned */
+    /* -----------------------------------------
+       Check whether faculty are assigned
+    ----------------------------------------- */
 
     const facultyCount =
       await User.countDocuments({
@@ -251,6 +329,10 @@ const deleteDepartment = async (req, res) => {
       });
     }
 
+    /* -----------------------------------------
+       Delete department
+    ----------------------------------------- */
+
     const department =
       await Department.findByIdAndDelete(id);
 
@@ -261,7 +343,7 @@ const deleteDepartment = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       message:
         "Department deleted successfully.",
     });
@@ -271,7 +353,7 @@ const deleteDepartment = async (req, res) => {
       error
     );
 
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error while deleting department.",
     });

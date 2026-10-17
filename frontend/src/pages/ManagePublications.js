@@ -109,12 +109,11 @@ export default function ManagePublications() {
       */
 
       const response = await api.put(
-        `/publications/${id}/verify`,
-        {
-          verificationStatus: status,
-        }
-      );
-
+     `/publications/${id}/verify`,
+      {
+       status: status,
+     }
+     );
       const updatedPublication = response.data?.publication;
 
       if (!updatedPublication) {
